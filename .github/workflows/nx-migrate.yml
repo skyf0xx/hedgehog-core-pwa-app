@@ -1,0 +1,108 @@
+name: Nx migrate
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    if: github.repository == 'skyf0xx/hedgehog-core-pwa-app'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - run: corepack enable
+
+      - run: cd workspace && pnpm install --frozen-lockfile
+
+      # nx migrate resolves nx + every @nx/* plugin to one mutually
+      # compatible version set (Nx's own coupled-upgrade tool) and
+      # applies the codemods each migration needs, then --run-migrations
+      # applies them and deletes the generated migrations.json.
+      - run: cd workspace && npx nx migrate latest
+
+      - run: cd workspace && npx nx migrate --run-migrations
+
+      - run: cd workspace && pnpm install --no-frozen-lockfile
+
+      - id: diff
+        run: |
+          if git diff --quiet -- workspace; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && npx nx run-many --target=lint,typecheck,test,build --all
+
+      # pwa-app is a single Next.js app with no e2e target confirmed yet
+      # (workspace/package.json hadn't landed from Phase 2 at the time
+      # this workflow was written) — assumes a `pnpm e2e` script;
+      # adjust the target name here if Phase 2 lands something else.
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && npx playwright install --with-deps
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && pnpm e2e
+
+      # Proves the migration didn't just leave the app working — it must
+      # also leave every generator producing code that still typechecks
+      # and builds, since scaffolding a fresh domain module is the first
+      # thing a consuming project does after `hedgehog init`. pwa-app has
+      # three generators (not one per layer, unlike full-stack-app's
+      # seven): feature (full vertical slice), integration (client +
+      # adapter), and entity (schema + repository, optionally --remote
+      # for a Supabase-backed one). Runs feature first so entity has a
+      # --feature to attach to, then discards everything — this is a
+      # smoke test, not a fixture.
+      #
+      # The exact invocations below (generator names, flags, positional
+      # vs. named args) are illustrative and were written concurrently
+      # with the Phase 3 agent building tools/generators/ — verify and
+      # adjust against the real generator schemas once that phase lands.
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          cd workspace
+          npx nx g @hedgehog/pwa:feature ci-smoke-test --no-interactive
+          npx nx g @hedgehog/pwa:integration ci-smoke-weather --no-interactive
+          npx nx g @hedgehog/pwa:entity CiSmokeRemote --feature=ci-smoke-test --remote --no-interactive
+          npx nx run-many --target=typecheck,build --all
+
+      # The generators write new files under src/ (features, db table
+      # registration, integrations) and rewrite existing barrels in
+      # place (e.g. src/db/schema.ts), and a --remote entity also adds a
+      # Supabase migration under supabase/ — checkout alone reverts the
+      # rewrites, clean removes the new files, and both must run across
+      # both roots the generators write to.
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          cd workspace
+          git checkout -- src supabase
+          git clean -fd src supabase
+
+      - if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(workspace): nx migrate to latest"
+          title: "chore(workspace): nx migrate to latest"
+          body: |
+            Automated `nx migrate latest` against `workspace/`, gated on:
+
+            - `nx run-many --target=lint,typecheck,test,build --all`
+            - `pnpm e2e`
+            - a full generator smoke test (feature, integration, entity --remote) followed by `typecheck,build`
+
+            Review the diff — especially anything under `workspace/tools/generators` — before merging. Merging does not publish; bump `package.json` separately to release.
+          branch: nx-migrate/scheduled
+          delete-branch: true
+          add-paths: workspace

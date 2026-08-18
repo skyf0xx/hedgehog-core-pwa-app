@@ -1,0 +1,40 @@
+# The commit gate. Two things in here are load-bearing and read like
+# noise if you don't know what they're for — don't "clean them up".
+#
+# `assert_lefthook_installed: true` is what makes the gate fail CLOSED.
+# It is consumed by `lefthook install`, which bakes a refusing branch
+# into the generated .git/hooks/* scripts. Without it, a repo whose
+# node_modules has been cleared — a workspace clean, a fresh clone
+# before install, a core switch — prints "Can't find lefthook in PATH"
+# and exits 0, so the commit lands with no typecheck, no lint and no
+# test while .git/hooks and this file both still look like a gate.
+# There is nothing in the output that distinguishes "passed the gate"
+# from "there was no gate". With it, the hook refuses the commit and
+# names the escape hatch (`git commit --no-verify`, or `LEFTHOOK=0`).
+# Restore enforcement with `pnpm install` — lefthook's own postinstall
+# re-runs `lefthook install -f` — or with `pnpm dlx lefthook install`
+# on its own. `hedgehog status` reports whether the gate is live.
+#
+# Because the assertion is written into the hook at install time, this
+# flag only protects hooks generated after it was set. `pnpm install`
+# regenerates them, so any project that has installed once since is
+# covered.
+assert_lefthook_installed: true
+
+pre-commit:
+  parallel: true
+  commands:
+    typecheck:
+      glob: '*.{ts,tsx}'
+      run: pnpm typecheck
+    lint:
+      glob: '*.{ts,tsx}'
+      run: pnpm lint
+    test:
+      glob: '*.{ts,tsx}'
+      run: pnpm test
+
+commit-msg:
+  commands:
+    commitlint:
+      run: npx commitlint --edit {1}
