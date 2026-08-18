@@ -74,9 +74,9 @@ jobs:
       - if: steps.diff.outputs.changed == 'true'
         run: |
           cd workspace
-          npx nx g @hedgehog/pwa:feature ci-smoke-test --no-interactive
-          npx nx g @hedgehog/pwa:integration ci-smoke-weather --no-interactive
-          npx nx g @hedgehog/pwa:entity CiSmokeRemote --feature=ci-smoke-test --remote --no-interactive
+          pnpm generate @hedgehog/pwa:feature ci-smoke-test --no-interactive
+          pnpm generate @hedgehog/pwa:integration ci-smoke-weather --no-interactive
+          pnpm generate @hedgehog/pwa:entity CiSmokeRemote --feature=ci-smoke-test --remote --no-interactive
           pnpm add -D @supabase/supabase-js
           pnpm typecheck && pnpm build
 

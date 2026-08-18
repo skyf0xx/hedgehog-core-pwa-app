@@ -157,9 +157,9 @@ wiring in `database.ts` is actually present in this codebase.
 ### Generators (§7 — invoke, don't hand-author)
 
 ```bash
-pnpm nx g @hedgehog/pwa:feature <name>
-pnpm nx g @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
-pnpm nx g @hedgehog/pwa:integration <name> [--kind=wallet]
+pnpm generate @hedgehog/pwa:feature <name>
+pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
+pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
 ```
 
 There is no `hedgehog generate` command — `hedgehog` is the build-graph

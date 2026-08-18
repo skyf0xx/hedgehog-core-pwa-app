@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "generate": "cross-env NODE_OPTIONS=--experimental-strip-types nx g"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.3.1",
@@ -51,6 +52,7 @@
     "@typescript-eslint/parser": "^8.65.0",
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/coverage-v8": "~4.1.0",
+    "cross-env": "^10.1.0",
     "eslint": "^10.7.0",
     "eslint-config-next": "^16.1.6",
     "eslint-plugin-import": "2.31.0",

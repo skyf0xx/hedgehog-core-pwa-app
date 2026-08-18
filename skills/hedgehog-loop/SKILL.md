@@ -217,9 +217,9 @@ generators, not through a `hedgehog` verb (`hedgehog` is the build-graph
 CLI and gains no generator commands of its own):
 
 ```bash
-pnpm nx g @hedgehog/pwa:feature <name>
-pnpm nx g @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
-pnpm nx g @hedgehog/pwa:integration <name> [--kind=wallet]
+pnpm generate @hedgehog/pwa:feature <name>
+pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
+pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
 ```
 
 - **`feature`** lands the full vertical slice for a new module in one
