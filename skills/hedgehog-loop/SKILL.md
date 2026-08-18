@@ -80,7 +80,7 @@ verify` gates and commits it.
 
 | # | Layer | Lives in | Commit |
 |---|---|---|---|
-| 1 | `schema` | `src/features/{module}/data/{module}.schema.ts` (Zod), `src/db/tables/{module}.table.ts` (Dexie table registration), `src/db/schema.ts` (barrel, appended to — see below) | `feat({module}): schema` |
+| 1 | `schema` | `src/features/{module}/data/{module}.schema.ts` (Zod) and its `{module}.schema.spec.ts`, `src/db/tables/{module}.table.ts` (Dexie table registration), `src/db/schema.ts` (barrel, appended to — see below) | `feat({module}): schema` |
 | 2 | `repository` | `src/features/{module}/data/**` (Dexie or, for a `--remote` module, Supabase adapter behind the same interface) | `feat({module}): repository` |
 | 3 | `hook` | `src/features/{module}/hooks/**` (TanStack Query) | `feat({module}): hooks` |
 | 4 | `screen` | `src/features/{module}/components/**`, `src/features/{module}/index.ts`, `src/app/{module}/**` | `feat({module}): screen` |

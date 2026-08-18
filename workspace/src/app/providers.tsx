@@ -5,10 +5,12 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 /**
- * TanStack Query is for external API responses only (issue #172 §5) —
- * local data goes through Dexie via a feature's repository, never
- * through this client. One QueryClient per app, created once per
- * mount via useState so it survives re-renders but not a full remount.
+ * TanStack Query is this core's hook layer: every module's hooks wrap
+ * calls to that module's Dexie-backed (or, for a `--remote` module,
+ * Supabase-backed) repository through this client, giving loading,
+ * error, and cache behavior over local reads and writes as well as any
+ * external API call. One QueryClient per app, created once per mount
+ * via useState so it survives re-renders but not a full remount.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
