@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "HedgehogPwaFeature",
+  "title": "Full vertical slice for one new domain module",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Domain module name, plural kebab-case (e.g. todos, order-items).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "Module name (plural kebab-case)?"
+    }
+  },
+  "required": ["name"]
+}

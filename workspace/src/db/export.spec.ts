@@ -3,12 +3,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import Dexie from 'dexie';
 import { clearAll, exportAll, importAll } from './export';
 
-// This test exercises export.ts against a fresh in-memory Dexie
-// database (via fake-indexeddb) that mirrors the zero-table shape
-// src/db/schema.ts starts with. Once a module's schema layer adds a
-// real table, add a table-specific round-trip test alongside it — this
-// file's job is only to prove the export/import/clear machinery itself
-// works, not any particular table's data.
+// This test exercises export.ts against the real Dexie database
+// (via fake-indexeddb), whatever tables src/db/schema.ts currently
+// registers — zero on a fresh core checkout, one per module afterward.
+// It asserts the export/import/clear machinery's own shape, not any
+// particular table's data, so it keeps passing as modules are added.
+// Once a module's schema layer adds a real table, add a table-specific
+// round-trip test alongside it for that table's own data.
 
 describe('exportAll / importAll / clearAll', () => {
   beforeEach(async () => {
@@ -16,13 +17,16 @@ describe('exportAll / importAll / clearAll', () => {
     await db.open();
   });
 
-  it('exports a versioned payload with zero tables', async () => {
+  it('exports a versioned payload with one entry per registered table', async () => {
+    const { db } = await import('./database');
     const payload = await exportAll();
 
     expect(payload.version).toBe(1);
     expect(payload.app).toBe('app');
     expect(typeof payload.exportedAt).toBe('string');
-    expect(payload.data).toEqual({});
+    expect(Object.keys(payload.data).sort()).toEqual(
+      db.tables.map((table) => table.name).sort(),
+    );
   });
 
   it('rejects an import payload that fails schema validation', async () => {

@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "HedgehogPwaIntegration",
+  "title": "Client/schema/adapter triple for one external integration",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Integration name, kebab-case (e.g. weather, privy).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "Integration name (kebab-case)?"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["client", "wallet"],
+      "default": "client",
+      "description": "'client' (default): plain client/schema/adapter shape for a read-only API. 'wallet': the AuthProvider/WalletProvider stub pair from issue #172 §11."
+    }
+  },
+  "required": ["name"]
+}
