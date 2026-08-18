@@ -69,8 +69,10 @@ Next.js (App Router, **static export** — no server runtime) · Nx
 supported IndexedDB abstraction — raw `indexedDB` and `localStorage` for
 app state are lint-forbidden) · **Zod** (entities, imports, external
 responses — types inferred, never hand-maintained alongside) ·
-**TanStack Query** (external API responses only — never a substitute for
-the local DB) · Tailwind v4 + hand-built ShadCN base · **`@serwist/next`**
+**TanStack Query** (this core's `hook` layer for every module — wraps
+calls to a module's Dexie- or Supabase-backed repository, and external
+API responses too, never a substitute for the local DB itself) ·
+Tailwind v4 + hand-built ShadCN base · **`@serwist/next`**
 (manifest, service worker, precached app shell, offline fallback) ·
 Dexie's sharded auto-generated string keys (client-generated,
 collision-free across devices, the form Dexie Cloud requires — a
