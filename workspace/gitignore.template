@@ -9,6 +9,13 @@ playwright-report/
 test-results/
 coverage/
 public/sw.js
+public/workbox-*.js
 public/swe-worker*.js
 *.tsbuildinfo
 .DS_Store
+.env
+.env.local
+.hedgehog/graph-server.json
+.hedgehog/hedgehog.db
+.hedgehog/hedgehog.db-*
+.hedgehog/commit.lock
