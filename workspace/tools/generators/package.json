@@ -1,0 +1,7 @@
+{
+  "name": "@hedgehog/pwa",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "generators": "./generators.json"
+}

@@ -1,0 +1,22 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "name": "hedgehog-pwa",
+  "version": "0.0.1",
+  "generators": {
+    "feature": {
+      "factory": "./feature/generator",
+      "schema": "./feature/schema.json",
+      "description": "Full vertical slice for one new domain module: schema, Dexie table registration, repository + test, hook, component shell, barrel (issue #172 §7)."
+    },
+    "entity": {
+      "factory": "./entity/generator",
+      "schema": "./entity/schema.json",
+      "description": "One entity within an existing (or standalone) feature: Zod schema, repository + test, fixture factory, table registration. --remote emits a Supabase-backed repository and migration stub instead of Dexie's (issue #172 §12)."
+    },
+    "integration": {
+      "factory": "./integration/generator",
+      "schema": "./integration/schema.json",
+      "description": "Client/schema/adapter triple for one external integration. --kind=wallet emits the AuthProvider/WalletProvider stub pair instead (issue #172 §11)."
+    }
+  }
+}

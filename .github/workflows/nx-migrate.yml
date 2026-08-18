@@ -1,0 +1,111 @@
+name: Nx migrate
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    if: github.repository == 'skyf0xx/hedgehog-core-pwa-app'
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - run: corepack enable
+
+      - run: cd workspace && pnpm install --frozen-lockfile
+
+      # nx migrate resolves nx + every @nx/* plugin to one mutually
+      # compatible version set (Nx's own coupled-upgrade tool) and
+      # applies the codemods each migration needs, then --run-migrations
+      # applies them and deletes the generated migrations.json.
+      - run: cd workspace && npx nx migrate latest
+
+      - run: cd workspace && npx nx migrate --run-migrations
+
+      - run: cd workspace && pnpm install --no-frozen-lockfile
+
+      - id: diff
+        run: |
+          if git diff --quiet -- workspace; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && npx playwright install --with-deps
+
+      - if: steps.diff.outputs.changed == 'true'
+        run: cd workspace && pnpm e2e
+
+      # Proves the migration didn't just leave the app working — it must
+      # also leave every generator producing code that still typechecks
+      # and builds, since scaffolding a fresh domain module is the first
+      # thing a consuming project does after `hedgehog init`. pwa-app has
+      # three generators, wired as the @hedgehog/pwa Nx plugin (a
+      # single-app workspace, not a multi-project graph, so `pnpm
+      # typecheck`/`lint`/`test`/`build` run directly rather than through
+      # `nx run-many`): feature (full vertical slice), integration
+      # (client + adapter, --kind=wallet for the AuthProvider/
+      # WalletProvider stub pair), and entity (schema + repository,
+      # optionally --remote for a Supabase-backed one). Runs feature
+      # first so entity has a --feature to attach to.
+      #
+      # --remote is smoke-tested with @supabase/supabase-js installed
+      # transiently (never a workspace dependency otherwise — issue #172
+      # §12, wired only by bootstrap when a project actually has a
+      # remote entity in scope): the generated SupabaseXRepository
+      # imports it directly, so typecheck fails without it, exactly as
+      # it should for a real project that generates a --remote entity
+      # without wiring the dependency first.
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          cd workspace
+          pnpm generate @hedgehog/pwa:feature ci-smoke-test --no-interactive
+          pnpm generate @hedgehog/pwa:integration ci-smoke-weather --no-interactive
+          pnpm generate @hedgehog/pwa:entity CiSmokeRemote --feature=ci-smoke-test --remote --no-interactive
+          pnpm add -D @supabase/supabase-js
+          pnpm typecheck && pnpm build
+
+      # The generators write new files under src/ (features, db table
+      # registration, integrations) and rewrite existing barrels in
+      # place (e.g. src/db/schema.ts), and a --remote entity also adds a
+      # Supabase migration under supabase/ — checkout alone reverts the
+      # rewrites, clean removes the new files, and both must run across
+      # both roots the generators write to. Also reverts the transient
+      # @supabase/supabase-js install above.
+      - if: steps.diff.outputs.changed == 'true'
+        run: |
+          cd workspace
+          git checkout -- src supabase package.json pnpm-lock.yaml
+          git clean -fd src supabase
+
+      - if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "chore(workspace): nx migrate to latest"
+          title: "chore(workspace): nx migrate to latest"
+          body: |
+            Automated `nx migrate latest` against `workspace/`, gated on:
+
+            - `pnpm typecheck && pnpm lint && pnpm test && pnpm build`
+            - `pnpm e2e`
+            - a full generator smoke test (feature, integration, entity --remote) followed by `typecheck`/`build`
+
+            Review the diff — especially anything under `workspace/tools/generators` — before merging. Merging does not publish; bump `package.json` separately to release.
+          branch: nx-migrate/scheduled
+          delete-branch: true
+          add-paths: workspace

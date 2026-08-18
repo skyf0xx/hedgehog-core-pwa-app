@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "jsx": "preserve",
+    "noEmit": true,
+    "allowJs": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    "next.config.ts",
+    "vitest.config.ts",
+    "playwright.config.ts",
+    "eslint.config.mjs",
+    "commitlint.config.cjs"
+  ],
+  "exclude": ["node_modules", ".next", "out", "dist", "test-results", "playwright-report"]
+}

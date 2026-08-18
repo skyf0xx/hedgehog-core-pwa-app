@@ -1,0 +1,42 @@
+{
+  "name": "@skyf0xx/hedgehog-core-pwa-app",
+  "version": "1.0.0",
+  "description": "Hedgehog's pwa-app core: a pre-built, pre-verified Next.js/Dexie local-first PWA workspace, module-axis build discipline, and the agents and skills that drive it.",
+  "type": "module",
+  "scripts": {
+    "release": "npm version patch -m \"chore: bump version to %s\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/skyf0xx/hedgehog-core-pwa-app.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "workspace",
+    "agents",
+    "skills",
+    "CLAUDE.core.md",
+    "hedgehog-core.yaml",
+    "!workspace/node_modules/**",
+    "!workspace/.nx/**",
+    "!workspace/dist/**",
+    "!workspace/out/**",
+    "!workspace/.next/**",
+    "!workspace/out-tsc/**"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "keywords": [
+    "hedgehog-core",
+    "hedgehog",
+    "claude-code",
+    "nx",
+    "nextjs",
+    "dexie",
+    "pwa"
+  ],
+  "license": "MIT"
+}

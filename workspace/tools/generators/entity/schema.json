@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/schema",
+  "$id": "HedgehogPwaEntity",
+  "title": "One entity within an existing (or standalone) feature",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Entity name, singular or plural kebab/Pascal case (e.g. Todo, RewardClaim).",
+      "$default": { "$source": "argv", "index": 0 },
+      "x-prompt": "Entity name?"
+    },
+    "feature": {
+      "type": "string",
+      "description": "Existing feature (src/features/{feature}) this entity's files land under. Defaults to the entity's own kebab-case name (a standalone feature)."
+    },
+    "remote": {
+      "type": "boolean",
+      "description": "Emit a Supabase-backed repository and migration stub instead of a Dexie table (issue #172 §12).",
+      "default": false
+    }
+  },
+  "required": ["name"]
+}
