@@ -56,6 +56,9 @@ function schemaFile(names: ModuleNames): string {
  * Minimal skeleton for the "${names.entityCamel}" entity — id plus the
  * Syncable fields every table carries (issue #172 §9). Extend this with
  * the entity's real domain fields.
+ *
+ * \`id\`, \`realmId\`, \`owner\`, and both timestamps are repository-assigned,
+ * never supplied by a caller — see \`Create${entityPascal}Schema\` below.
  */
 export const ${entityPascal}Schema = z.object({
   id: z.string(),
@@ -69,6 +72,8 @@ export type ${entityPascal} = z.infer<typeof ${entityPascal}Schema>;
 
 export const Create${entityPascal}Schema = ${entityPascal}Schema.omit({
   id: true,
+  realmId: true,
+  owner: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -148,8 +153,17 @@ export const ${entityPascal}Repository = {
   async create(input: Create${entityPascal}): Promise<${entityPascal}> {
     const now = nowUtc();
     // Client-generated, collision-free string id (see ${camel}.table.ts) —
-    // sync-ready without relying on an auto-increment key.
-    const candidate = { ...input, id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+    // sync-ready without relying on an auto-increment key. realmId/owner
+    // are assigned here, not supplied by the caller — once sync is on,
+    // this is where the active realm and authenticated user id belong.
+    const candidate = {
+      ...input,
+      id: crypto.randomUUID(),
+      realmId: 'local',
+      owner: 'local-user',
+      createdAt: now,
+      updatedAt: now,
+    };
 
     try {
       await table().add(candidate);
@@ -209,12 +223,13 @@ describe('${entityPascal}Repository', () => {
     ({ ${entityPascal}Repository: repository } = await import('./${module}.repository'));
   });
 
-  const input = { realmId: 'local', owner: 'local-user' };
+  const input = {};
 
   it('creates and lists a ${entityCamel}', async () => {
     const created = await repository.create(input);
 
     expect(created.id).toBeTypeOf('string');
+    expect(created.realmId).toBe('local');
 
     const all = await repository.list();
     expect(all.map((row) => row.id)).toContain(created.id);
@@ -235,8 +250,9 @@ describe('${entityPascal}Repository', () => {
   it('updates only the changed fields', async () => {
     const created = await repository.create(input);
 
-    const updated = await repository.update(created.id, { owner: 'new-owner' });
-    expect(updated.owner).toBe('new-owner');
+    const updated = await repository.update(created.id, {});
+    expect(updated.realmId).toBe('local');
+    expect(updated.owner).toBe('local-user');
     expect(updated.createdAt).toBe(created.createdAt);
     expect(updated.id).toBe(created.id);
   });
@@ -403,7 +419,10 @@ pnpm add @supabase/supabase-js
 Also set \`NEXT_PUBLIC_SUPABASE_URL\` and \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`
 in the environment. The migration stub is at
 \`supabase/migrations/<timestamp>_${module}.sql\` — fill in the real
-columns and RLS policies before applying it.
+columns and RLS policies before applying it, and set \`realm_id\`'s
+default to this project's actual realm-assignment rule; the client never
+supplies \`id\`, \`realmId\`, \`owner\`, or the timestamps, so every one of
+them needs a server-side default or an Edge Function to assign it.
 
 The bootstrap skill wires \`@supabase/supabase-js\` in only when a
 project actually has a remote entity in scope, matching the "not on by
@@ -422,10 +441,16 @@ function writeSupabaseMigration(tree: Tree, names: ModuleNames) {
 -- (issue #172 §12). Rename this file's timestamp prefix to the actual
 -- generation time before applying it with \`supabase db push\`.
 
+-- id, realm_id, owner, and both timestamps are server-assigned — the
+-- client's Create${entityPascal}Schema never supplies them, matching the
+-- Dexie repository's own id/timestamp assignment. owner defaults to the
+-- authenticated caller; set realm_id's default to this project's actual
+-- realm-assignment rule before applying (a fixed realm, a claim off the
+-- JWT, or a value an Edge Function assigns).
 create table if not exists ${names.module} (
   id uuid primary key default gen_random_uuid(),
   realm_id text not null,
-  owner text not null,
+  owner text not null default (auth.uid()::text),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
   -- add this entity's real domain columns here

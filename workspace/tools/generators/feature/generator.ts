@@ -59,9 +59,11 @@ export const ${entityPascal}Schema = z.object({
 
 export type ${entityPascal} = z.infer<typeof ${entityPascal}Schema>;
 
-/** Fields the caller supplies; id and timestamps are assigned by the repository. */
+/** Fields the caller supplies; id, realmId, owner, and timestamps are assigned by the repository. */
 export const Create${entityPascal}Schema = ${entityPascal}Schema.omit({
   id: true,
+  realmId: true,
+  owner: true,
   createdAt: true,
   updatedAt: true,
 });
@@ -120,9 +122,14 @@ export const ${entityPascal}Repository = {
     // Client-generated, collision-free string id — the shape Dexie Cloud's
     // own sharded keys require, set before the write rather than assigned
     // by an auto-increment Dexie can't hand off to sync later (issue #172 §9).
+    // realmId/owner are assigned here too, never supplied by the caller —
+    // once sync is on, this is where the active realm and authenticated
+    // user id belong.
     const candidate = {
       ...input,
       id: crypto.randomUUID(),
+      realmId: 'local',
+      owner: 'local-user',
       createdAt: now,
       updatedAt: now,
     };
@@ -199,7 +206,7 @@ describe('${entityPascal}Repository', () => {
     ({ ${entityPascal}Repository: repository } = await import('./${module}.repository'));
   });
 
-  const input = { realmId: 'local', owner: 'local-user' };
+  const input = {};
 
   it('creates and lists a ${entityCamel}', async () => {
     const created = await repository.create(input);
@@ -226,9 +233,9 @@ describe('${entityPascal}Repository', () => {
   it('updates only the changed fields', async () => {
     const created = await repository.create(input);
 
-    const updated = await repository.update(created.id, { owner: 'new-owner' });
-    expect(updated.owner).toBe('new-owner');
+    const updated = await repository.update(created.id, {});
     expect(updated.realmId).toBe('local');
+    expect(updated.owner).toBe('local-user');
     expect(updated.createdAt).toBe(created.createdAt);
     expect(updated.id).toBe(created.id);
   });
