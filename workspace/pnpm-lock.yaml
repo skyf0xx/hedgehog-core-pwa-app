@@ -155,8 +155,8 @@ importers:
         specifier: ^7.35.0
         version: 7.37.5(eslint@10.8.1(jiti@2.7.0))
       eslint-plugin-react-hooks:
-        specifier: 5.0.0
-        version: 5.0.0(eslint@10.8.1(jiti@2.7.0))
+        specifier: 7.1.1
+        version: 7.1.1(eslint@10.8.1(jiti@2.7.0))
       fake-indexeddb:
         specifier: ^6.2.2
         version: 6.2.5
@@ -3702,12 +3702,6 @@ packages:
     peerDependenciesMeta:
       eslint-plugin-jest:
         optional: true
-
-  eslint-plugin-react-hooks@5.0.0:
-    resolution: {integrity: sha512-hIOwI+5hYGpJEc4uPRmz2ulCjAGD/N13Lukkh8cLV0i2IRk/bdZDYjgLVHj+U9Z704kLIdIO6iueGvxNur0sgw==}
-    engines: {node: '>=10'}
-    peerDependencies:
-      eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0
 
   eslint-plugin-react-hooks@7.1.1:
     resolution: {integrity: sha512-f2I7Gw6JbvCexzIInuSbZpfdQ44D7iqdWX01FKLvrPgqxoE7oMj8clOfto8U6vYiz4yd5oKu39rRSVOe1zRu0g==}
@@ -10415,10 +10409,6 @@ snapshots:
     dependencies:
       eslint: 10.8.1(jiti@2.7.0)
       globals: 13.24.0
-
-  eslint-plugin-react-hooks@5.0.0(eslint@10.8.1(jiti@2.7.0)):
-    dependencies:
-      eslint: 10.8.1(jiti@2.7.0)
 
   eslint-plugin-react-hooks@7.1.1(eslint@10.8.1(jiti@2.7.0)):
     dependencies:
