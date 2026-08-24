@@ -28,9 +28,13 @@ jobs:
       # compatible version set (Nx's own coupled-upgrade tool) and
       # applies the codemods each migration needs, then --run-migrations
       # applies them and deletes the generated migrations.json.
+      # migrations.json is only written when there's an actual migration
+      # to run — when everything's already on latest, nx migrate latest
+      # produces no file, so --run-migrations needs --if-exists or it
+      # errors on a plain re-run with nothing to do.
       - run: cd workspace && npx nx migrate latest
 
-      - run: cd workspace && npx nx migrate --run-migrations
+      - run: cd workspace && npx nx migrate --run-migrations --if-exists
 
       - run: cd workspace && pnpm install --no-frozen-lockfile
 
