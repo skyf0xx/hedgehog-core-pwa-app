@@ -160,7 +160,7 @@ wiring in `database.ts` is actually present in this codebase.
 
 ```bash
 pnpm generate @hedgehog/pwa:feature <name>
-pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
+pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote] [--layer=schema|repository]
 pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
 ```
 
@@ -171,6 +171,14 @@ gets the entity-specific delta authored on top: field list and types,
 validation and mutation rules, and — for `screen` — layout and
 interaction pattern. A generator that emits an empty file is a bug, not
 something to hand-fill.
+
+`entity`'s `--layer` matches its output to one `hedgehog claim`ed task's
+ALLOWED SCOPE: `--layer=schema` for the `SCHEMA` task, `--layer=repository`
+for the `REPOSITORY` task once `SCHEMA` is verified and committed.
+Omitting `--layer` still emits both in one run for a caller outside
+Hedgehog's per-layer discipline, but doing that against a claimed
+`SCHEMA` task leaves repository-layer files untracked and outside that
+task's scope — `hedgehog verify` rejects them.
 
 ### Guardrails (§8 — lint-enforced, run in `join`'s verify and in CI)
 

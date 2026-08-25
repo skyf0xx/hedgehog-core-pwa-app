@@ -18,6 +18,11 @@
       "type": "boolean",
       "description": "Emit a Supabase-backed repository and migration stub instead of a Dexie table (issue #172 §12).",
       "default": false
+    },
+    "layer": {
+      "type": "string",
+      "enum": ["schema", "repository"],
+      "description": "Restrict output to one core.yaml layer's files — \"schema\" emits only {module}.schema.ts, the table registration, and the src/db/schema.ts append; \"repository\" emits only the fixture, repository, and repository spec (issue #279). Omit to emit both in one run, matching the pre-#279 behavior."
     }
   },
   "required": ["name"]
