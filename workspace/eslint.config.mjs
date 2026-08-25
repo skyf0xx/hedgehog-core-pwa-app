@@ -32,6 +32,7 @@ export default [
       '**/.next/**',
       '**/out/**',
       '**/node_modules/**',
+      '**/.hedgehog/**',
       '**/test-output/**',
       '**/playwright-report/**',
       '**/test-results/**',
