@@ -8,6 +8,7 @@ interface EntityGeneratorOptions {
   name: string;
   feature?: string;
   remote?: boolean;
+  layer?: 'schema' | 'repository';
 }
 
 /**
@@ -17,31 +18,53 @@ interface EntityGeneratorOptions {
  * swaps the Dexie table + repository for a Supabase-backed repository
  * and a migration stub, keeping the same five-method interface so a
  * hook or component cannot tell which backs it.
+ *
+ * `--layer` restricts output to one core.yaml layer's files (issue
+ * #279): core.yaml's `schema` task only allows `{module}.schema.ts`,
+ * the table file, and the `src/db/schema.ts` append, while `repository`
+ * allows the rest of `data/**` — the fixture and the repository files.
+ * Without `--layer` this still emits both in one run (the pre-#279
+ * shape), for a caller that isn't driven by Hedgehog's per-layer
+ * `hedgehog verify` scope.
  */
 export default async function entityGenerator(tree: Tree, options: EntityGeneratorOptions) {
   const entityNames = moduleNames(options.name);
-  assertUsableName(options.name, existingTableNames(tree));
-
   const featureModule = options.feature ? moduleNames(options.feature).module : entityNames.module;
   const dir = `src/features/${featureModule}/data`;
+  const schemaPath = `${dir}/${entityNames.module}.schema.ts`;
 
-  if (tree.exists(`${dir}/${entityNames.module}.schema.ts`)) {
-    throw new Error(`${dir}/${entityNames.module}.schema.ts already exists.`);
+  const writeSchema = options.layer === undefined || options.layer === 'schema';
+  const writeRepository = options.layer === undefined || options.layer === 'repository';
+
+  if (writeSchema) {
+    assertUsableName(options.name, existingTableNames(tree));
+    if (tree.exists(schemaPath)) {
+      throw new Error(`${schemaPath} already exists.`);
+    }
+    tree.write(schemaPath, schemaFile(entityNames));
+    if (!options.remote) {
+      writeTableFile(tree, entityNames.module, entityNames.camel);
+      registerTableInSchema(tree, entityNames.module);
+    }
   }
 
-  tree.write(`${dir}/${entityNames.module}.schema.ts`, schemaFile(entityNames));
-  tree.write(`${dir}/${entityNames.module}.fixture.ts`, fixtureFile(entityNames));
+  if (writeRepository) {
+    if (!tree.exists(schemaPath)) {
+      throw new Error(
+        `${schemaPath} does not exist — run this generator with --layer=schema (or without --layer) first.`,
+      );
+    }
+    tree.write(`${dir}/${entityNames.module}.fixture.ts`, fixtureFile(entityNames));
 
-  if (options.remote) {
-    writeSupabaseMigration(tree, entityNames);
-    tree.write(`${dir}/${entityNames.module}.repository.ts`, supabaseRepositoryFile(entityNames));
-    tree.write(`${dir}/${entityNames.module}.repository.spec.ts`, supabaseRepositorySpecFile(entityNames));
-    tree.write(`${dir}/${entityNames.module}.README.md`, remoteReadmeFile(entityNames));
-  } else {
-    writeTableFile(tree, entityNames.module, entityNames.camel);
-    registerTableInSchema(tree, entityNames.module);
-    tree.write(`${dir}/${entityNames.module}.repository.ts`, dexieRepositoryFile(entityNames));
-    tree.write(`${dir}/${entityNames.module}.repository.spec.ts`, dexieRepositorySpecFile(entityNames));
+    if (options.remote) {
+      writeSupabaseMigration(tree, entityNames);
+      tree.write(`${dir}/${entityNames.module}.repository.ts`, supabaseRepositoryFile(entityNames));
+      tree.write(`${dir}/${entityNames.module}.repository.spec.ts`, supabaseRepositorySpecFile(entityNames));
+      tree.write(`${dir}/${entityNames.module}.README.md`, remoteReadmeFile(entityNames));
+    } else {
+      tree.write(`${dir}/${entityNames.module}.repository.ts`, dexieRepositoryFile(entityNames));
+      tree.write(`${dir}/${entityNames.module}.repository.spec.ts`, dexieRepositorySpecFile(entityNames));
+    }
   }
 
   await formatFiles(tree);
@@ -432,6 +455,7 @@ Cloud, wallet providers, and this one alike).
 }
 
 function writeSupabaseMigration(tree: Tree, names: ModuleNames) {
+  const { entityPascal } = names;
   const timestamp = '00000000000000';
   const path = `supabase/migrations/${timestamp}_${names.module}.sql`;
 

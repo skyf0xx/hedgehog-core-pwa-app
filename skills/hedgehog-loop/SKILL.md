@@ -218,7 +218,7 @@ CLI and gains no generator commands of its own):
 
 ```bash
 pnpm generate @hedgehog/pwa:feature <name>
-pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote]
+pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote] [--layer=schema|repository]
 pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
 ```
 
@@ -236,7 +236,16 @@ pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
   instead of the Dexie path — the generator asks which methods are
   client-writable under RLS and which require an Edge Function stub.
   Nothing else in the output differs: same barrel, same hook shape, same
-  component shell, whether local or remote.
+  component shell, whether local or remote. **Pass `--layer` to match
+  the claimed task**: `--layer=schema` on the entity's `SCHEMA` task
+  (emits only `{module}.schema.ts`, the table file, and the
+  `src/db/schema.ts` append — core.yaml's `schema` scope) and
+  `--layer=repository` on its `REPOSITORY` task, once `SCHEMA` is
+  verified and committed (emits the fixture and repository files —
+  everything else `data/**` allows). Omitting `--layer` emits both in
+  one run; against a claimed `SCHEMA` task that leaves repository-layer
+  files sitting untracked outside its ALLOWED SCOPE, which
+  `hedgehog verify` then rejects.
 - **`integration`** lands an external API or wallet adapter: client, Zod
   response schema, adapter, adapter test, barrel — wired through the
   public-env-variable helper, never a raw `process.env` read in client
