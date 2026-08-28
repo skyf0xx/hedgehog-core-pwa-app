@@ -63,6 +63,8 @@ screen      (Next.js + ShadCN/Tailwind, UX judgment folded in)
 join        (workspace-wide gate, once per module)
 ```
 
+This is what `workspace/core.yaml` declares as `pattern: vertical-slice` — every layer above `join` carries `{module}` in its scope, so the chain runs once per module, independently.
+
 Every layer scaffolds from its own generator in `tools/generators/` (see
 "Scaffolding a layer" below) — schema file, table registration, barrel
 wiring, and the layer's conventional shape all land in one deterministic
