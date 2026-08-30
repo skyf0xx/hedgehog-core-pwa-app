@@ -408,9 +408,12 @@ core, adapted to this one's actual seams:
 - **Mutation discipline**: do repository methods write only the fields
   they change, and does a multi-table write run inside
   `db.transaction("rw", …)`?
-- **Sync readiness**: does the table registration carry `@id`, `realmId`,
-  and `owner` regardless of whether sync is on yet for this project (per
-  `.hedgehog/addons.yaml`)?
+- **Sync readiness**: does the table registration carry a plain,
+  client-generated string `id` (never auto-increment or a hand-rolled
+  non-UUID scheme) plus `realmId` and `owner`, regardless of whether
+  sync is on yet for this project (per `.hedgehog/addons.yaml`)? `id` ->
+  `@id` is a one-line change made only once sync turns on — a table
+  still on plain `id` is not a defect.
 - **`--remote` shape, if applicable**: does the migration's RLS policy
   cover every column the repository writes? Does the Edge Function stub
   exist for every method the generator marked as requiring one?
