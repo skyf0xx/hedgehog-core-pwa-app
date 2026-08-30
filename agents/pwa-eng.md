@@ -53,11 +53,6 @@ before the next starts.
 - **Supabase** (`@supabase/supabase-js`), only for a module generated
   `--remote` — its repository is the only file that imports it.
 
-Use `nx-run-tasks` (build/lint/test/typecheck), `nx-workspace` (inspecting
-project/target config), `nx-generate` (scaffolding a new generator run),
-and `link-workspace-packages` (wiring a new package into a consumer) as
-needed.
-
 **Every layer you own starts from its generator in `tools/generators/`** —
 `feature` for a full vertical slice, `entity` for one Dexie- or
 Supabase-backed table, `integration` for an external API or wallet
