@@ -1,6 +1,6 @@
 {
   "name": "@skyf0xx/hedgehog-core-pwa-app",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Hedgehog's pwa-app core: a pre-built, pre-verified Next.js/Dexie local-first PWA workspace, module-axis build discipline, and the agents and skills that drive it.",
   "type": "module",
   "scripts": {
