@@ -21,10 +21,11 @@ The discipline is packaged as skills. Use them; don't reconstruct their
 steps from memory:
 
 - **`hedgehog-loop`** — every unit of work once bootstrapped: `hedgehog
-  next` emits the packet for one ready layer, build exactly one, gate it
-  via `hedgehog verify`, which commits it on a pass. Also holds the
-  Correction Protocol for fixing a wrong upstream step. Invoke it at the
-  start of any build session and for "what's next".
+  claim` reserves the packet for one ready layer (`hedgehog next` previews
+  it read-only, without reserving), build exactly one, gate it via
+  `hedgehog verify`, which commits it on a pass. Also holds the Correction
+  Protocol for fixing a wrong upstream step. Invoke it at the start of any
+  build session and for "what's next".
 - **`hedgehog-bootstrap-pwa-app-core`** — run **once**, at project
   start, to scaffold the core stack, the enforcement config, and
   whichever of sync/remote entities planning intake turned on. Skip if
@@ -51,7 +52,7 @@ steps from memory:
   only if `.hedgehog/addons.yaml` turned it on. Triggered automatically
   by `planner` after its first run; skip if `nx.json` already exists.
 - **`pwa-eng`** — builds every module's full sequence (schema →
-  repository → hook → screen), one `hedgehog next` packet at a time,
+  repository → hook → screen), one `hedgehog claim`ed packet at a time,
   gated by `hedgehog verify`. One agent covers the whole vertical slice:
   every layer here is TypeScript running client-side against the same
   Dexie instance, with no framework-tier switch to split responsibility
