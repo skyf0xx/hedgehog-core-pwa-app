@@ -51,10 +51,11 @@ export function existingTableNames(tree: Tree): Set<string> {
 
 /**
  * Writes `src/db/tables/{module}.table.ts` — table name, Dexie index
- * string, and the version it was introduced at. `@id` (sharded
- * auto-generated string primary key) plus indexed `realmId`/`owner`
- * (the `Syncable` fields) so the table is sync-ready from its first
- * version, per issue #172 §9.
+ * string, and the version it was introduced at. A plain, client-generated
+ * string `id` plus indexed `realmId`/`owner` (the `Syncable` fields) so
+ * the table is sync-ready from its first version, per issue #172 §9 —
+ * `id` becomes Dexie Cloud's `@id` sharded-key marker only once sync
+ * turns on (see the `schema` export's own doc comment below).
  */
 export function writeTableFile(
   tree: Tree,

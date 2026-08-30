@@ -137,9 +137,11 @@ independent and neither depends on the other having run.
 ### 5. Sync branch (only if `sync: true`)
 
 The workspace already lands sync-ready regardless of this branch —
-`@id` sharded string keys, `realmId`/`owner` on every syncable table,
-field-level mutations (§9) — so turning sync on here is wiring, not a
-data-shape change:
+plain, client-generated string `id` keys, `realmId`/`owner` on every
+syncable table, field-level mutations (§9) — so turning sync on here is
+wiring, not a data-shape change. The one shape change this branch makes
+is the primary key marker itself, `id` -> `@id`, on each existing table
+file:
 
 ```bash
 pnpm add dexie-cloud-addon
@@ -150,8 +152,13 @@ npx dexie-cloud create
 URL. Write that URL into `.env.local` as
 `NEXT_PUBLIC_DEXIE_CLOUD_URL`, uncommenting the matching line in
 `.env.example` too so the committed template documents it for the next
-clone. Wire `src/db/database.ts` (already scaffolded with this block
-commented out):
+clone. In every existing `src/db/tables/*.table.ts` file, change the
+schema string's leading `id` to `@id` — the one-line swap
+`tools/generators/db-tables.ts`'s own doc comment describes, safe now
+because the addon installed above intercepts `.stores()` and rewrites
+`@id` before core Dexie ever sees it. No data migration: the id values
+already have the right shape. Wire `src/db/database.ts` (already
+scaffolded with this block commented out):
 
 ```ts
 db.use(dexieCloud);

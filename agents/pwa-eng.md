@@ -74,11 +74,15 @@ drift `hedgehog verify`'s lint step then has to catch.
   import + one `.stores({...})` line to the `src/db/schema.ts` barrel,
   the same append-only discipline `hedgehog-core-full-stack-app`'s
   `packages/db/src/schema/index.ts` barrel uses. Every syncable table
-  carries `@id` (Dexie Cloud's sharded auto-generated string primary
-  key — never an auto-incrementing key or a hand-rolled ID scheme, both
-  unfixable after data exists) plus `realmId` and `owner`, whether or
-  not sync is on yet for this project, so turning sync on later never
-  means migrating a populated table's shape.
+  carries a plain, client-generated string `id` (never an
+  auto-incrementing key or a hand-rolled non-UUID scheme, both unfixable
+  after data exists) plus `realmId` and `owner`, whether or not sync is
+  on yet for this project — `@id`, Dexie Cloud's sharded-key marker, is
+  `dexie-cloud-addon` syntax that plain Dexie rejects as an invalid
+  keyPath before the addon is installed and registered, so the `id` ->
+  `@id` swap happens only once sync turns on (§15/bootstrap's sync
+  branch), never before. Because the id values are already the right
+  shape, that swap is a one-line schema change with no data migration.
 - **`repository`**: `src/features/{module}/data/{module}.repository.ts` —
   the five standard methods (`list`, `get`, `create`, `update`, `delete`)
   behind a plain interface, implemented against Dexie for a local module
