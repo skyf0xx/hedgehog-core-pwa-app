@@ -17,7 +17,7 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'pnpm start',
+    command: 'npx serve@latest out -p 3000',
     url: baseURL,
     reuseExistingServer: !process.env['CI'],
   },
