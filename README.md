@@ -2,12 +2,13 @@
 
 ### Offline-First Apps That Don't Need a Backend
 
-A tracker, a journal, a planner, a small team's board — most apps like
-this don't need a server. They need data that's yours, works offline,
-and syncs when you're back online.
+A tracker, a journal, a planner, a small team's board. Plenty of apps
+like these run fine with no server at all. They need data that's
+yours, that keeps working offline, and that syncs when you're back
+online.
 
-This core builds exactly that: installable, offline-capable, and
-structured to grow without turning into spaghetti.
+This core builds installable, offline-capable apps, structured to grow
+without turning into spaghetti.
 
 ```mermaid
 flowchart LR
@@ -18,21 +19,21 @@ flowchart LR
 
 ## What you get
 
-- **Next.js + Dexie**, local-first by default — your data lives on the
-  device, not behind a round trip.
-- **Optional sync and auth via Dexie Cloud**, for a shared list, a
+- **Next.js + Dexie**, local-first by default. Your data lives on the
+  device instead of behind a round trip.
+- **Optional sync and auth via Dexie Cloud** for a shared list, a
   family calendar, or a small team, without giving up local-first
   reads and writes.
 - **A commit gate** (lefthook + commitlint + ESLint guardrails) that
   keeps every layer honest before it lands.
 
-## Built for real personal and small-team apps
+## Built for personal and small-team apps
 
 Reach for this core when the data fits on a device and belongs to the
-person using it — even with sharing, accounts, or a point balance that
-needs a server-authoritative record. What pushes a project to a full
-backend instead is server-side logic across most of the app: background
-jobs, webhooks, or authorization beyond row-level rules.
+person using it, even with sharing, accounts, or a point balance that
+needs a server-authoritative record. A full backend earns its place
+when server-side logic runs through the bulk of the app: background
+jobs, webhooks, authorization beyond row-level rules.
 
 ## Easy to install and use
 
