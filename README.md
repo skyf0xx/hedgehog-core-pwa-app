@@ -1,6 +1,6 @@
 # Hedgehog PWA App Core ⭐
 
-### Offline-First Apps That Don't Need a Backend
+### For: Offline-First Apps That Don't Need a Backend
 
 A tracker, a journal, a planner, a small team's board. Plenty of apps
 like these run fine with no server at all. They need data that's
