@@ -47,10 +47,6 @@ Ask your agent:
 npx @skyf0xx/hedgehog init
 ```
 
-Hedgehog's planner selects this core automatically when your project's
-data fits on a device and belongs to the person using it. You can also
-request it directly:
-
 ```
 npx @skyf0xx/hedgehog init --pwa-app
 ```
