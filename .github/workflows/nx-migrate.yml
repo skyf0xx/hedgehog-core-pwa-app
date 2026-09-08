@@ -81,7 +81,7 @@ jobs:
           pnpm generate @hedgehog/pwa:feature ci-smoke-test --no-interactive
           pnpm generate @hedgehog/pwa:integration ci-smoke-weather --no-interactive
           pnpm generate @hedgehog/pwa:entity CiSmokeRemote --feature=ci-smoke-test --remote --no-interactive
-          pnpm add -D @supabase/supabase-js
+          pnpm add -D -w @supabase/supabase-js
           pnpm typecheck && pnpm build
 
       # The generators write new files under src/ (features, db table
