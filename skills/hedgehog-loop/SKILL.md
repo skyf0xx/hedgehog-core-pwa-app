@@ -148,19 +148,41 @@ module's `schema` task touches, not a branch in the layer table itself.
    zero. `hedgehog ready` previews the same decision without claiming
    anything — CLAIMABLE vs HELD BACK, with the reason for each holdback —
    useful for understanding the scheduler before committing to a claim.
-2. **Dispatch each claimed packet to its own `pwa-eng` subagent** — in
-   ONE message with parallel tool calls, not one agent call after
-   another. This is a Claude session orchestrating via the Agent tool's
-   parallel-call mechanism: N claimed tasks means N Agent calls in the
-   same message. If a dispatch by name reports the agent as not found —
-   expected right after `init`/`update` installed it this same session —
-   see root CLAUDE.md's "Delegating on this host" note rather than
-   treating it as fatal.
-3. Each agent **runs typecheck/lint/test on its own work** (mirrors
-   lefthook, wired at bootstrap) as a sanity check before reporting
-   back — necessary, not sufficient. Per task, per agent: the agent
-   reports its work as done; it does not move the task and does not
-   commit.
+2. **For each claimed packet, decide inline vs. dispatch, then act.**
+   Default to dispatching to a `pwa-eng` subagent — in ONE message with
+   parallel tool calls, not one agent call after another. This is a
+   Claude session orchestrating via the Agent tool's parallel-call
+   mechanism: N claimed tasks dispatched this way means N Agent calls in
+   the same message. Build or confirm the packet directly instead, with
+   no subagent, only when the packet clears one of these from the
+   packet alone:
+   - **ALLOWED SCOPE** names a small, bounded set of files the
+     orchestrator can read directly without ballooning its own context.
+   - **RELEVANT RULES or the module name** make the layer's irrelevance
+     checkable in one read — the task's own rules describe a concern
+     that plainly doesn't touch this layer's area.
+   - The change, once its shape is known, is small and mechanical — a
+     rename, an import fix, a one-line registration — rather than
+     something needing a subagent's isolated, fresh-context judgment.
+
+   Escalate to a full `pwa-eng` dispatch mid-layer the moment any of
+   these turns out false — a "quick check" that surfaces real
+   cross-file reasoning, an unclear scope, or a diff bigger than
+   expected. Never lock in "inline" once guessed. Either way, the
+   layer's own VERIFICATION command and ALLOWED SCOPE gate apply
+   identically in step 4 — this choice changes who reads, writes, and
+   checks, never what gets checked before it's accepted. A no-op found
+   inline is still reported per the packet's HONESTY rules, never
+   assumed. If a dispatch by name reports the agent as not found —
+   expected right after `init`/`update` installed it this same
+   session — see root CLAUDE.md's "Delegating on this host" note rather
+   than treating it as fatal.
+3. Whoever built the packet — the `pwa-eng` agent, or the orchestrator
+   itself when it went inline — **runs typecheck/lint/test on that
+   work** (mirrors lefthook, wired at bootstrap) as a sanity check
+   before reporting back — necessary, not sufficient. Per task: the
+   work is reported as done; the task is not moved and nothing is
+   committed yet.
 4. **As each report arrives, verify it — one at a time, serially.** Run
    `hedgehog verify <task-id> --owner <owner>` (the same owner that
    claimed it; verify requires the lease owner). Building happens in
