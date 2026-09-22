@@ -30,13 +30,14 @@ the patch.
 
 ## The Domain Module Pattern
 
-A **domain module = one entity.** `todos`, `notes`, `expenses` are each
-their own module, carrying the full step sequence below. The Zod schema
-is the source of truth for module boundaries.
+Root CLAUDE.md's Core rules own "one entity = one domain module" and
+"FK-by-ID only" — this section is their mechanics. `todos`, `notes`,
+`expenses` are each their own module, carrying the full step sequence
+below. The Zod schema is the source of truth for module boundaries.
 
-**Cross-module references are FK-by-ID only.** If a `todos` record
-references a `projects` record, `todos`' schema holds a plain id field —
-the `todos` repository and hook depend only on their own module.
+If a `todos` record references a `projects` record, `todos`' schema
+holds a plain id field — the `todos` repository and hook depend only on
+their own module.
 
 - Need the related row? Resolve it at the hook layer (a second query
   against the other module's own repository, composed in the consuming
@@ -187,12 +188,8 @@ module's `schema` task touches, not a branch in the layer table itself.
    `hedgehog verify <task-id> --owner <owner>` (the same owner that
    claimed it; verify requires the lease owner). Building happens in
    parallel; verifying does not — verify writes a commit, and commits go
-   through one at a time. It checks the touched files against the
-   packet's ALLOWED SCOPE, runs the layer's VERIFICATION command, and on
-   a pass writes the commit (the exact Conventional Commit message from
-   the table above, plus the updated build graph) and unlocks the next
-   layer. On a scope violation or a failing check, the task moves to
-   `blocked` with a `blocked_reason` of `scope_violation` or
+   through one at a time. On a scope violation or a failing check, the
+   task moves to `blocked` with a `blocked_reason` of `scope_violation` or
    `verification_failed`, and nothing downstream unlocks. Fix the work,
    then run `hedgehog retry <task-id>` to return the task to `planned`,
    claim it again (by task id — see below), and verify again —
@@ -227,7 +224,7 @@ the built work against it there, because nothing else in the build does.
 A layer that hits a limitation the next layer must compensate for
 declares it with `hedgehog debt add <task-id> "<note>"`; the note lands
 in the **INHERITED DEBT** section of every packet that depends on that
-task. A comment in a source file is not a mechanism — nothing reads it.
+task.
 
 Each `hedgehog verify` call commits exactly one layer, built right for
 what's known now; a wrong layer is fixed forward later via the
@@ -467,13 +464,9 @@ the graph doesn't have a task for.
 - **A wrong step gets fixed at its source** — the Correction Protocol,
   not a downstream workaround.
 - **Tests gate every commit** in the sequence.
-- **`src/db/schema.ts` is the single shared file every module's
-  `schema` layer appends to** — never restructure it, never regenerate
-  it wholesale; a felt need to do either is a sign the append-only
-  discipline was already broken upstream.
-- **Only the repository reaches the database**, Dexie or Supabase alike.
-  A per-screen or per-hook exception request signals to fix the
-  repository boundary, not to add one.
+- `src/db/schema.ts`'s append-only discipline and the repository-only
+  database access rule are root CLAUDE.md's Core rules — see there, not
+  restated here.
 
 ## Stop Condition
 
