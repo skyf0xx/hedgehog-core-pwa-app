@@ -152,10 +152,9 @@ plainly rather than inventing a source you don't have.
    packet's scope and rules don't account for; your own tests prove
    internal consistency, never coverage of what was asked. INHERITED
    DEBT is what the layers you depend on declared they left for you;
-   declare your own with `hedgehog debt add <task-id> "<note>"` rather
-   than a code comment nothing reads. Its WHY NOW section already
-   confirms the module is in scope and every dependency is `complete` —
-   no need to re-derive that by hand.
+   declare your own with `hedgehog debt add <task-id> "<note>"`. Its WHY
+   NOW section already confirms the module is in scope and every
+   dependency is `complete` — no need to re-derive that by hand.
 2. Build exactly one layer, matching the packet's ALLOWED SCOPE: run its
    generator, then author this entity's delta. Run typecheck, lint, and
    test yourself as a sanity check before reporting back — necessary,
@@ -164,12 +163,8 @@ plainly rather than inventing a source you don't have.
    its RLS policies alongside the Zod schema and table registration —
    the policy check is part of that layer's own verify, not a separate
    step.
-3. **Report the work as done; do not commit it yourself.** Per the build
-   graph's design, an agent reporting success never moves a task — only
-   `hedgehog verify <task-id>`'s passing exit code does. It checks your
-   changes against the packet's ALLOWED SCOPE, re-runs the real
-   verification command, and on a pass writes the commit (the packet's
-   exact Conventional Commit message) itself.
+3. **Report the work as done; do not commit it yourself.** See
+   `hedgehog-loop` for what `hedgehog verify` checks and commits.
 4. One layer at a time — never start the next layer before `hedgehog
    verify` reports the current one `complete`.
 5. Once `hedgehog verify` reports a module's `screen` layer `complete`,

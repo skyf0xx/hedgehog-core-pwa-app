@@ -26,40 +26,28 @@ steps from memory:
   `hedgehog verify`, which commits it on a pass. Also holds the Correction
   Protocol for fixing a wrong upstream step. Invoke it at the start of any
   build session and for "what's next".
+<!-- hedgehog:bootstrap-only start -->
 - **`hedgehog-bootstrap-pwa-app-core`** — run **once**, at project
   start, to scaffold the core stack, the enforcement config, and
   whichever of sync/remote entities planning intake turned on. Skip if
   `nx.json` already exists.
+<!-- hedgehog:bootstrap-only end -->
 - **`conventional-commits`** — when a change spans several layers in one
   working-tree pass and needs splitting back into per-layer commits
   (mainly Correction Protocol cleanups).
 
 ### The agents — delegate the judgment calls
 
-- **`planner`** — planning intake (which core applies, then
-  `hedgehog-planning-intake`'s BMAD-METHOD brainstorming/brief/PRD/UX-spec
-  shelf, mined into intent records, the sync and remote-entity decisions,
-  and domain vocabulary) at project start. Writes intents via `hedgehog
-  intent add`, `.hedgehog/addons.yaml`, and `.hedgehog/BMAD/`. On first
-  run, hands off to the `bootstrap` agent once Confirm & Lock holds. Runs
-  again whenever new scope enters play — including after the build is
-  complete — taking `hedgehog-planning-intake`'s **Re-entry pass**: the
-  BMAD shelf and `bootstrap` are both skipped, new modules are mined into
-  additional intents, and `hedgehog plan` appends their tasks without
-  touching anything already built.
-- **`bootstrap`** — runs `hedgehog-bootstrap-pwa-app-core`'s steps:
-  core, unconditionally, then the sync and/or remote-entity branch, each
-  only if `.hedgehog/addons.yaml` turned it on. Triggered automatically
-  by `planner` after its first run; skip if `nx.json` already exists.
-- **`pwa-eng`** — builds every module's full sequence (schema →
-  repository → hook → screen), one `hedgehog claim`ed packet at a time,
-  gated by `hedgehog verify`. One agent covers the whole vertical slice:
-  every layer here is TypeScript running client-side against the same
-  Dexie instance, with no framework-tier switch to split responsibility
-  on the way a server-backed core splits backend from frontend engineers.
-- **`reviewer`** — the per-module checks the mechanical gate can't make
-  (repository discipline, feature-boundary discipline, mutation
-  discipline, sync readiness), run once a module's `join` task lands.
+`pwa-eng` builds every module's full sequence (schema → repository →
+hook → screen), one `hedgehog claim`ed packet at a time, gated by
+`hedgehog verify` — one agent for the whole vertical slice, since every
+layer here is TypeScript running client-side against the same Dexie
+instance, with no framework-tier split to justify separate agents the
+way a server-backed core splits backend from frontend engineers.
+`reviewer` runs the per-module checks the mechanical gate can't make,
+once a module's `join` task lands. See `hedgehog-loop` for exactly which
+agent owns which layer and the claim/verify sequencing — that skill is
+the source, not restated here.
 
 ## The constants (do not deviate)
 
@@ -159,27 +147,12 @@ wiring in `database.ts` is actually present in this codebase.
 
 ### Generators (§7 — invoke, don't hand-author)
 
-```bash
-pnpm generate @hedgehog/pwa:feature <name>
-pnpm generate @hedgehog/pwa:entity <Name> [--feature=<name>] [--remote] [--layer=schema|repository]
-pnpm generate @hedgehog/pwa:integration <name> [--kind=wallet]
-```
-
-There is no `hedgehog generate` command — `hedgehog` is the build-graph
-CLI (`plan`, `next`, `claim`, `verify`, `status`, `boundary`, …) and
-gains no generator verbs. Every layer starts from its generator, then
-gets the entity-specific delta authored on top: field list and types,
-validation and mutation rules, and — for `screen` — layout and
-interaction pattern. A generator that emits an empty file is a bug, not
-something to hand-fill.
-
-`entity`'s `--layer` matches its output to one `hedgehog claim`ed task's
-ALLOWED SCOPE: `--layer=schema` for the `SCHEMA` task, `--layer=repository`
-for the `REPOSITORY` task once `SCHEMA` is verified and committed.
-Omitting `--layer` still emits both in one run for a caller outside
-Hedgehog's per-layer discipline, but doing that against a claimed
-`SCHEMA` task leaves repository-layer files untracked and outside that
-task's scope — `hedgehog verify` rejects them.
+Three Nx generators — `feature`, `entity`, `integration` — scaffold
+every layer; there is no `hedgehog generate` command, since `hedgehog`
+is the build-graph CLI and gains no generator verbs of its own. See
+`hedgehog-loop`'s "Scaffolding a layer" section for the commands, flags,
+and the `entity --layer` contract against a claimed task's ALLOWED
+SCOPE — that section is the source, not restated here.
 
 ### Guardrails (§8 — lint-enforced, run in `join`'s verify and in CI)
 
@@ -232,23 +205,8 @@ construction.
   All imported data, external responses, and — once sync is on — records
   arriving through sync are Zod-validated at the trust boundary.
 
-### Hosting (do not default to Railway — see also the bootstrap skill)
+### Hosting
 
-Two separate questions, because this core is a static app plus an
-optional stateful sync backend:
-
-- **The app**: Next.js static export means the build output is files,
-  not a server. **Vercel** by default (zero-config for a static Next
-  export), Cloudflare Pages or Netlify equally valid. Free at this scale
-  for the overwhelming majority of projects this core targets.
-- **Sync, when on**: Dexie Cloud's own hosted tier (free for 3
-  production users and 100 MB, ~€3/month per 25 seats beyond that) is
-  the default. **Railway** enters only as the self-host escalation —
-  Dexie Cloud is Node + Postgres, Railway's shape — for a project that
-  outgrows the hosted tier or has a self-hosting requirement. Not the
-  default, and not set up unless a project actually reaches for it.
-
-A project on this core needing infrastructure at all is the exception,
-not the baseline — unlike `full-stack-app`, whose NestJS API always
-needs a server to run on, this core's default project needs nothing
-beyond a static host.
+Do not default to Railway. See `hedgehog-bootstrap-pwa-app-core`'s
+"Hosting" section for the app/sync split and the default providers for
+each — that section is the source, not restated here.
