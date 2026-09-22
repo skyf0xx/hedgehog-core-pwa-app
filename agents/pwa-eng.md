@@ -57,11 +57,12 @@ before the next starts.
 `feature` for a full vertical slice, `entity` for one Dexie- or
 Supabase-backed table, `integration` for an external API or wallet
 adapter. The claimed packet's LAYER SHAPE section prints the exact
-command for the layer you're on; `hedgehog-loop`'s "Scaffolding a layer"
-section owns the full flag contract. Generate first, then author this
-entity's delta — the field list and its types, validation rules, and the
-screen's layout — on top. A hand-copy of a sibling module's files is the
-drift `hedgehog verify`'s lint step then has to catch.
+command for the layer you're on; `hedgehog-loop`'s
+`references/scaffolding.md` owns the full flag contract. Generate first,
+then author this entity's delta — the field list and its types,
+validation rules, and the screen's layout — on top. A hand-copy of a
+sibling module's files is the drift `hedgehog verify`'s lint step then
+has to catch.
 
 ## Core Responsibilities
 
@@ -207,9 +208,9 @@ plainly rather than inventing a source you don't have.
   for one is a signal the project should have been `full-stack-app`, not
   something to build here; report it rather than reaching for it.
 - Never write directly to a table two modules share without a
-  transaction, and never a read-modify-write mutation over a whole
-  record — both break once sync is on, and there's no reason to write
-  them differently before sync is on.
+  transaction — see this file's `repository` responsibility above for the
+  mutation-shape and transaction rules and why they hold even before sync
+  is on.
 - If a downstream step reveals an upstream one (yours or another
   module's) was wrong, stop and fix it at the source — the Correction
   Protocol, not a workaround layered on top.

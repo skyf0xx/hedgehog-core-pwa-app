@@ -150,9 +150,9 @@ wiring in `database.ts` is actually present in this codebase.
 Three Nx generators — `feature`, `entity`, `integration` — scaffold
 every layer; there is no `hedgehog generate` command, since `hedgehog`
 is the build-graph CLI and gains no generator verbs of its own. See
-`hedgehog-loop`'s "Scaffolding a layer" section for the commands, flags,
+`hedgehog-loop`'s `references/scaffolding.md` for the commands, flags,
 and the `entity --layer` contract against a claimed task's ALLOWED
-SCOPE — that section is the source, not restated here.
+SCOPE — that file is the source, not restated here.
 
 ### Guardrails (§8 — lint-enforced, run in `join`'s verify and in CI)
 
