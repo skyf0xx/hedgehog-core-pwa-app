@@ -5,3 +5,9 @@ workspace/dist
 workspace/out
 workspace/.next
 workspace/out-tsc
+workspace/next-env.d.ts
+workspace/public/sw.js
+workspace/public/workbox-*.js
+workspace/public/swe-worker*.js
+workspace/*.tsbuildinfo
+/lefthook.yml
