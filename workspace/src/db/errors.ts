@@ -1,5 +1,5 @@
 /**
- * Discriminated error type for the data layer (issue #172 §14). Every
+ * Discriminated error type for the data layer. Every
  * repository, import/export routine, and integration client should
  * reject/throw one of these rather than a bare Error, so callers can
  * branch on `kind` instead of parsing a message string.

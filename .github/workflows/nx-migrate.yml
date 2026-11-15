@@ -69,10 +69,9 @@ jobs:
       # first so entity has a --feature to attach to.
       #
       # --remote is smoke-tested with @supabase/supabase-js installed
-      # transiently (never a workspace dependency otherwise — issue #172
-      # §12, wired only by bootstrap when a project actually has a
-      # remote entity in scope): the generated SupabaseXRepository
-      # imports it directly, so typecheck fails without it, exactly as
+      # transiently (never a workspace dependency otherwise; bootstrap
+      # wires it only when a project has a remote entity in scope): the
+      # generated Supabase-backed repository imports it directly, so typecheck fails without it, exactly as
       # it should for a real project that generates a --remote entity
       # without wiring the dependency first.
       - if: steps.diff.outputs.changed == 'true'

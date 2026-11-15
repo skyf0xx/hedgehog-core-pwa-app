@@ -4,7 +4,7 @@ import { nowUtc } from './types';
 import { validationError, persistenceError, type AppError } from './errors';
 
 /**
- * Data safety (issue #172 §13). A versioned full-database export/import
+ * Data safety. A versioned full-database export/import
  * pair plus an explicit-confirmation `clearAll` — required from the
  * first commit of this workspace, not something a later feature adds.
  */

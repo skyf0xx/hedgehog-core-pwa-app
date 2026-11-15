@@ -14,9 +14,8 @@ and skills that drive a Hedgehog project built on it.
 - `skills/` — `hedgehog-loop`, `hedgehog-bootstrap-pwa-app-core`.
 - `CLAUDE.core.md` — fills a Hedgehog project's root `CLAUDE.md`
   `{{CORE_SECTION}}` placeholder for this core.
-- `hedgehog-core.yaml` — this package's manifest: name, flag, the
-  selection prose the Hedgehog planner matches a project description
-  against, and which agents/skills it carries.
+- `hedgehog-core.yaml` — this package's manifest: name, flag, engine
+  range, workspace, template, and which agents/skills it carries.
 
 ## Using this package
 
@@ -58,3 +57,10 @@ the deterministic path for every domain-module layer this core's
 build agent invokes them rather than authoring that boilerplate
 freehand. When a new piece of repeatable scaffolding is needed, extend a
 generator rather than hand-writing the output once.
+
+Each generator's per-layer output must pass that layer's verify command
+in `core.yaml` as generated. `scripts/check-generators.mjs <dir>` runs
+the generators layer by layer into an installed workspace at `<dir>`,
+for a local and a `--remote` module, and runs each layer's verify
+command and then `join`'s. It writes into `<dir>`, so point it at a
+throwaway copy; the Check workflow runs it on every pull request.

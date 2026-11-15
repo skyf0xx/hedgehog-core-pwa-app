@@ -3,6 +3,13 @@ import type { Tree } from '@nx/devkit';
 import { assertUsableName, moduleNames } from '../naming.ts';
 import type { ModuleNames } from '../naming.ts';
 import { existingTableNames, registerTableInSchema, writeTableFile } from '../db-tables.ts';
+import {
+  dexieRepositoryFile,
+  dexieRepositorySpecFile,
+  fixtureFile,
+  schemaFile,
+  schemaSpecFile,
+} from '../templates.ts';
 
 interface EntityGeneratorOptions {
   name: string;
@@ -12,20 +19,17 @@ interface EntityGeneratorOptions {
 }
 
 /**
- * One entity within an existing (or standalone) feature — issue #172
- * §7/§12. Narrower than `feature`: no hook, no component, no barrel
- * export; just the data layer plus a test fixture factory. `--remote`
- * swaps the Dexie table + repository for a Supabase-backed repository
- * and a migration stub, keeping the same five-method interface so a
- * hook or component cannot tell which backs it.
+ * One entity's data layer: no hook, no component, no barrel export
+ * (`feature --layer=hook|screen` lands those). `--remote` swaps the
+ * Dexie table and repository for a Supabase-backed repository and a
+ * migration stub, keeping the same `{Entity}Repository` export and
+ * five-method interface so a hook or component cannot tell which backs
+ * it.
  *
- * `--layer` restricts output to one core.yaml layer's files (issue
- * #279): core.yaml's `schema` task only allows `{module}.schema.ts`,
- * the table file, and the `src/db/schema.ts` append, while `repository`
- * allows the rest of `data/**` — the fixture and the repository files.
- * Without `--layer` this still emits both in one run (the pre-#279
- * shape), for a caller that isn't driven by Hedgehog's per-layer
- * `hedgehog verify` scope.
+ * `--layer` restricts output to one core.yaml layer's scope: `schema`
+ * emits the Zod schema and its spec plus the table file and the
+ * `src/db/schema.ts` append (or, with `--remote`, the migration);
+ * `repository` emits the fixture and the repository files.
  */
 export default async function entityGenerator(tree: Tree, options: EntityGeneratorOptions) {
   const entityNames = moduleNames(options.name);
@@ -42,7 +46,10 @@ export default async function entityGenerator(tree: Tree, options: EntityGenerat
       throw new Error(`${schemaPath} already exists.`);
     }
     tree.write(schemaPath, schemaFile(entityNames));
-    if (!options.remote) {
+    tree.write(`${dir}/${entityNames.module}.schema.spec.ts`, schemaSpecFile(entityNames));
+    if (options.remote) {
+      writeSupabaseMigration(tree, entityNames);
+    } else {
       writeTableFile(tree, entityNames.module, entityNames.camel);
       registerTableInSchema(tree, entityNames.module);
     }
@@ -57,7 +64,6 @@ export default async function entityGenerator(tree: Tree, options: EntityGenerat
     tree.write(`${dir}/${entityNames.module}.fixture.ts`, fixtureFile(entityNames));
 
     if (options.remote) {
-      writeSupabaseMigration(tree, entityNames);
       tree.write(`${dir}/${entityNames.module}.repository.ts`, supabaseRepositoryFile(entityNames));
       tree.write(`${dir}/${entityNames.module}.repository.spec.ts`, supabaseRepositorySpecFile(entityNames));
       tree.write(`${dir}/${entityNames.module}.README.md`, remoteReadmeFile(entityNames));
@@ -70,241 +76,11 @@ export default async function entityGenerator(tree: Tree, options: EntityGenerat
   await formatFiles(tree);
 }
 
-function schemaFile(names: ModuleNames): string {
-  const { entityPascal } = names;
-
-  return `import { z } from 'zod';
-
 /**
- * Minimal skeleton for the "${names.entityCamel}" entity — id plus the
- * Syncable fields every table carries (issue #172 §9). Extend this with
- * the entity's real domain fields.
- *
- * \`id\`, \`realmId\`, \`owner\`, and both timestamps are repository-assigned,
- * never supplied by a caller — see \`Create${entityPascal}Schema\` below.
- */
-export const ${entityPascal}Schema = z.object({
-  id: z.string(),
-  realmId: z.string(),
-  owner: z.string(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
-
-export type ${entityPascal} = z.infer<typeof ${entityPascal}Schema>;
-
-export const Create${entityPascal}Schema = ${entityPascal}Schema.omit({
-  id: true,
-  realmId: true,
-  owner: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export type Create${entityPascal} = z.infer<typeof Create${entityPascal}Schema>;
-
-export const Update${entityPascal}Schema = Create${entityPascal}Schema.partial();
-
-export type Update${entityPascal} = z.infer<typeof Update${entityPascal}Schema>;
-`;
-}
-
-/** `create<Name>Fixture(overrides?)` — a valid entity for tests, per issue #172 §7. */
-function fixtureFile(names: ModuleNames): string {
-  const { entityPascal, entityCamel } = names;
-
-  return `import type { ${entityPascal} } from './${names.module}.schema';
-
-let counter = 0;
-
-/** Returns a valid ${entityPascal}, unique per call unless overridden. */
-export function create${entityPascal}Fixture(overrides: Partial<${entityPascal}> = {}): ${entityPascal} {
-  counter += 1;
-  const now = new Date().toISOString();
-
-  return {
-    id: \`${entityCamel}-fixture-\${counter}\`,
-    realmId: 'local',
-    owner: 'local-user',
-    createdAt: now,
-    updatedAt: now,
-    ...overrides,
-  };
-}
-`;
-}
-
-function dexieRepositoryFile(names: ModuleNames): string {
-  const { entityPascal, camel, entityCamel } = names;
-
-  return `import { db } from '@/db/database';
-import { nowUtc } from '@/db/types';
-import { isAppError, persistenceError, validationError } from '@/db/errors';
-import {
-  ${entityPascal}Schema,
-  type ${entityPascal},
-  type Create${entityPascal},
-  type Update${entityPascal},
-} from './${names.module}.schema';
-
-function table() {
-  return db.table<${entityPascal}, string>('${camel}');
-}
-
-/**
- * The only file (besides its own test) allowed to import src/db/**
- * for the "${entityCamel}" entity — enforced by eslint.config.mjs's
- * no-restricted-imports guardrail.
- */
-export const ${entityPascal}Repository = {
-  async list(): Promise<${entityPascal}[]> {
-    try {
-      return await table().toArray();
-    } catch (cause) {
-      throw persistenceError('Failed to list ${names.module}.', cause);
-    }
-  },
-
-  async get(id: string): Promise<${entityPascal} | undefined> {
-    try {
-      return await table().get(id);
-    } catch (cause) {
-      throw persistenceError(\`Failed to load ${entityCamel} \${id}.\`, cause);
-    }
-  },
-
-  async create(input: Create${entityPascal}): Promise<${entityPascal}> {
-    const now = nowUtc();
-    // Client-generated, collision-free string id (see ${camel}.table.ts) —
-    // sync-ready without relying on an auto-increment key. realmId/owner
-    // are assigned here, not supplied by the caller — once sync is on,
-    // this is where the active realm and authenticated user id belong.
-    const candidate = {
-      ...input,
-      id: crypto.randomUUID(),
-      realmId: 'local',
-      owner: 'local-user',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    try {
-      await table().add(candidate);
-      const parsed = ${entityPascal}Schema.safeParse(candidate);
-      if (!parsed.success) {
-        throw validationError(\`Created ${entityCamel} failed schema validation.\`, parsed.error);
-      }
-      return parsed.data;
-    } catch (cause) {
-      if (isAppError(cause)) throw cause;
-      throw persistenceError('Failed to create ${entityCamel}.', cause);
-    }
-  },
-
-  async update(id: string, input: Update${entityPascal}): Promise<${entityPascal}> {
-    try {
-      const patch = { ...input, updatedAt: nowUtc() };
-      const updated = await table().update(id, patch);
-      if (updated === 0) {
-        throw persistenceError(\`No ${entityCamel} found with id \${id}.\`);
-      }
-      const row = await table().get(id);
-      const parsed = ${entityPascal}Schema.safeParse(row);
-      if (!parsed.success) {
-        throw validationError(\`Updated ${entityCamel} failed schema validation.\`, parsed.error);
-      }
-      return parsed.data;
-    } catch (cause) {
-      if (isAppError(cause)) throw cause;
-      throw persistenceError(\`Failed to update ${entityCamel} \${id}.\`, cause);
-    }
-  },
-
-  async delete(id: string): Promise<void> {
-    try {
-      await table().delete(id);
-    } catch (cause) {
-      throw persistenceError(\`Failed to delete ${entityCamel} \${id}.\`, cause);
-    }
-  },
-};
-`;
-}
-
-function dexieRepositorySpecFile(names: ModuleNames): string {
-  const { entityPascal, camel, entityCamel, module } = names;
-
-  return `import 'fake-indexeddb/auto';
-import { beforeEach, describe, expect, it } from 'vitest';
-
-describe('${entityPascal}Repository', () => {
-  let repository: typeof import('./${module}.repository').${entityPascal}Repository;
-
-  beforeEach(async () => {
-    const dbModule = await import('@/db/database');
-    await dbModule.db.table('${camel}').clear();
-    ({ ${entityPascal}Repository: repository } = await import('./${module}.repository'));
-  });
-
-  const input = {};
-
-  it('creates and lists a ${entityCamel}', async () => {
-    const created = await repository.create(input);
-
-    expect(created.id).toBeTypeOf('string');
-    expect(created.realmId).toBe('local');
-
-    const all = await repository.list();
-    expect(all.map((row) => row.id)).toContain(created.id);
-  });
-
-  it('gets a ${entityCamel} by id', async () => {
-    const created = await repository.create(input);
-
-    const found = await repository.get(created.id);
-    expect(found?.id).toBe(created.id);
-  });
-
-  it('returns undefined for a missing ${entityCamel}', async () => {
-    const found = await repository.get('does-not-exist');
-    expect(found).toBeUndefined();
-  });
-
-  it('updates only the changed fields', async () => {
-    const created = await repository.create(input);
-
-    const updated = await repository.update(created.id, {});
-    expect(updated.realmId).toBe('local');
-    expect(updated.owner).toBe('local-user');
-    expect(updated.createdAt).toBe(created.createdAt);
-    expect(updated.id).toBe(created.id);
-  });
-
-  it('rejects updating a missing ${entityCamel}', async () => {
-    await expect(repository.update('does-not-exist', {})).rejects.toMatchObject({
-      kind: 'persistence',
-    });
-  });
-
-  it('deletes a ${entityCamel}', async () => {
-    const created = await repository.create(input);
-
-    await repository.delete(created.id);
-
-    const found = await repository.get(created.id);
-    expect(found).toBeUndefined();
-  });
-});
-`;
-}
-
-/**
- * `@supabase/supabase-js` is NOT a dependency of this workspace by
- * default (issue #172 §12 — "not on by default"). This file imports it
- * by name; a project bringing a `--remote` entity into scope needs the
- * bootstrap skill (or the invoking agent) to add
- * `@supabase/supabase-js` as a real dependency before this file
- * typechecks. See the generated `${names.module}.README.md` alongside it.
+ * Imports `@supabase/supabase-js`, which the workspace carries only once
+ * the bootstrap skill's remote-entities branch has added it; until then
+ * this file does not typecheck. See the generated
+ * `${names.module}.README.md` alongside it.
  */
 function supabaseRepositoryFile(names: ModuleNames): string {
   const { entityPascal, entityCamel, module } = names;
@@ -318,9 +94,8 @@ import {
   type Update${entityPascal},
 } from './${module}.schema';
 
-// @supabase/supabase-js is not installed by default (issue #172 §12) — the
-// bootstrap skill or the invoking agent adds it as a real dependency once
-// this entity is in scope. See ${module}.README.md alongside this file.
+// @supabase/supabase-js is added by the bootstrap skill's remote-entities
+// branch. See ${module}.README.md alongside this file.
 
 let client: SupabaseClient | undefined;
 
@@ -339,12 +114,12 @@ function supabase(): SupabaseClient {
 
 /**
  * Server-authoritative "${entityCamel}" — same five-method interface as a
- * Dexie repository (issue #172 §12), so a hook or component cannot tell
+ * Dexie repository, under the same export name, so a hook or component cannot tell
  * which backs it. Reads/inserts flow through RLS-guarded table access;
  * a write that must be arbitrated server-side belongs in an Edge
  * Function called from here instead of a direct \`.insert()\`/\`.update()\`.
  */
-export const Supabase${entityPascal}Repository = {
+export const ${entityPascal}Repository = {
   async list(): Promise<${entityPascal}[]> {
     const { data, error } = await supabase().from('${names.module}').select('*');
     if (error) throw networkError(\`Failed to list ${names.module}.\`, error);
@@ -406,19 +181,17 @@ function supabaseRepositorySpecFile(names: ModuleNames): string {
   return `import { describe, expect, it } from 'vitest';
 
 /**
- * @supabase/supabase-js is not a dependency of this workspace by default
- * (issue #172 §12). This spec is a placeholder proving the module's shape
- * until the dependency is added and a real Supabase test double (or a
- * local Supabase instance) is wired in — replace with real
- * request/response assertions once that lands.
+ * A placeholder until a Supabase test double (or a local Supabase
+ * instance) is wired in: replace the todos with real request/response
+ * assertions then.
  */
-describe('Supabase${entityPascal}Repository', () => {
+describe('${entityPascal}Repository (Supabase)', () => {
   it.todo('lists ${module} through the RLS-guarded table');
   it.todo('creates a ${entityPascal} and validates the response against the schema');
   it.todo('updates a ${entityPascal} and validates the response against the schema');
   it.todo('deletes a ${entityPascal}');
 
-  it('is a placeholder pending @supabase/supabase-js as a real dependency', () => {
+  it('is a placeholder pending a Supabase test double', () => {
     expect(true).toBe(true);
   });
 });
@@ -430,27 +203,23 @@ function remoteReadmeFile(names: ModuleNames): string {
 
   return `# ${entityPascal} (remote entity)
 
-Generated with \`--remote\` (issue #172 §12). \`${module}.repository.ts\`
-implements \`Supabase${entityPascal}Repository\` against
-\`@supabase/supabase-js\`, which is **not yet a dependency of this
-workspace** — add it before this file will typecheck or run:
+Generated with \`--remote\`. \`${module}.repository.ts\` implements
+\`${entityPascal}Repository\` against \`@supabase/supabase-js\`, which
+the workspace carries only once the bootstrap skill's remote-entities
+branch has run. Without it, add it before this file will typecheck or run:
 
 \`\`\`bash
 pnpm add @supabase/supabase-js
 \`\`\`
 
 Also set \`NEXT_PUBLIC_SUPABASE_URL\` and \`NEXT_PUBLIC_SUPABASE_ANON_KEY\`
-in the environment. The migration stub is at
+in the environment. The migration stub, landed with this
+module's \`schema\` layer, is at
 \`supabase/migrations/<timestamp>_${module}.sql\` — fill in the real
 columns and RLS policies before applying it, and set \`realm_id\`'s
 default to this project's actual realm-assignment rule; the client never
 supplies \`id\`, \`realmId\`, \`owner\`, or the timestamps, so every one of
 them needs a server-side default or an Edge Function to assign it.
-
-The bootstrap skill wires \`@supabase/supabase-js\` in only when a
-project actually has a remote entity in scope, matching the "not on by
-default" rule every optional dependency in this core follows (Dexie
-Cloud, wallet providers, and this one alike).
 `;
 }
 
@@ -461,8 +230,8 @@ function writeSupabaseMigration(tree: Tree, names: ModuleNames) {
 
   tree.write(
     path,
-    `-- Migration stub for the server-authoritative "${names.module}" entity
--- (issue #172 §12). Rename this file's timestamp prefix to the actual
+    `-- Migration stub for the server-authoritative "${names.module}" entity.
+-- Rename this file's timestamp prefix to the actual
 -- generation time before applying it with \`supabase db push\`.
 
 -- id, realm_id, owner, and both timestamps are server-assigned — the

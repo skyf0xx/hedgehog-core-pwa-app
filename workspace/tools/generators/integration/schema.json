@@ -14,7 +14,7 @@
       "type": "string",
       "enum": ["client", "wallet"],
       "default": "client",
-      "description": "'client' (default): plain client/schema/adapter shape for a read-only API. 'wallet': the AuthProvider/WalletProvider stub pair from issue #172 §11."
+      "description": "'client' (default): plain client/schema/adapter shape for a read-only API. 'wallet': the AuthProvider/WalletProvider stub pair."
     }
   },
   "required": ["name"]

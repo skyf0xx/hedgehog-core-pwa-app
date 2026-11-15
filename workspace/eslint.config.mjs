@@ -3,8 +3,7 @@ import nx from '@nx/eslint-plugin';
 
 /**
  * Root flat ESLint config for the pwa-app core's single-app workspace.
- * Encodes issue #172 §8's guardrails as build-time (`pnpm lint`)
- * failures. There is no Nx tag graph here (single-project layout, no
+ * Encodes this core's guardrails as build-time (`pnpm lint`) failures. There is no Nx tag graph here (single-project layout, no
  * apps/libs split) — every boundary below is a path-pattern rule
  * instead of a `depConstraints` tag rule.
  *

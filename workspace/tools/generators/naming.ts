@@ -1,9 +1,6 @@
 /**
  * Every name a generator derives from one module/entity name, in one
- * place — mirrors `hedgehog-core-full-stack-app`'s own
- * `tools/generators/naming.ts`, adapted to this workspace's single-app,
- * `src/features/{module}` layout (no Postgres table name, no NestJS
- * class prefix; a Dexie table name instead).
+ * place, for this workspace's single-app `src/features/{module}` layout.
  *
  * A domain module is one feature directory, named in plural kebab-case
  * (`todos`, `order-items`). The entity name is its singular form, used
@@ -70,7 +67,7 @@ export function moduleNames(module: string): ModuleNames {
 
 /**
  * Guards a name against colliding with an existing Dexie table or a
- * reserved word (`entity` generator's refusal rule — issue #172 §7).
+ * reserved word.
  * `existingTables` is the set of table names already registered in
  * `src/db/tables/*.table.ts`.
  */

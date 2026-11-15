@@ -36,3 +36,6 @@ jobs:
       - run: cd workspace && pnpm install --frozen-lockfile
 
       - run: cd workspace && pnpm typecheck && pnpm lint && pnpm test && pnpm build
+
+      # Writes generated modules into the checkout, so it runs last.
+      - run: node scripts/check-generators.mjs workspace

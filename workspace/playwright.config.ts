@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL = process.env['BASE_URL'] || 'http://localhost:3000';
 
 /**
- * Config only, one smoke test (issue #172 §5) — a real e2e suite is a
+ * Config only, one smoke test — a real e2e suite is a
  * per-feature concern added alongside that feature's screen layer.
  */
 export default defineConfig({

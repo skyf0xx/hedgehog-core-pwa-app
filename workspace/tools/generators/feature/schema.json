@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/schema",
   "$id": "HedgehogPwaFeature",
-  "title": "Full vertical slice for one new domain module",
+  "title": "Vertical slice for one domain module",
   "type": "object",
   "properties": {
     "name": {
@@ -9,6 +9,11 @@
       "description": "Domain module name, plural kebab-case (e.g. todos, order-items).",
       "$default": { "$source": "argv", "index": 0 },
       "x-prompt": "Module name (plural kebab-case)?"
+    },
+    "layer": {
+      "type": "string",
+      "enum": ["schema", "repository", "hook", "screen"],
+      "description": "Emit only one core.yaml layer's files, each with the spec that layer's verify runs: \"schema\" the Zod schema, its spec, the table file, and the src/db/schema.ts append; \"repository\" the fixture, repository, and repository spec; \"hook\" the TanStack Query hooks and their spec; \"screen\" the list component, its spec, and the feature's index.ts. Omit to emit the whole slice for a new module."
     }
   },
   "required": ["name"]
