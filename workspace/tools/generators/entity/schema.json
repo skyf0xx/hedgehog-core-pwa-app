@@ -6,7 +6,7 @@
   "properties": {
     "name": {
       "type": "string",
-      "description": "Entity name, singular or plural kebab/Pascal case (e.g. Todo, RewardClaim).",
+      "description": "Entity name, lower kebab-case; for a domain module, the module name (e.g. todos, reward-claims). Its files are named after it.",
       "$default": { "$source": "argv", "index": 0 },
       "x-prompt": "Entity name?"
     },
@@ -16,13 +16,13 @@
     },
     "remote": {
       "type": "boolean",
-      "description": "Emit a Supabase-backed repository and migration stub instead of a Dexie table (issue #172 §12).",
+      "description": "Emit a Supabase migration stub (schema layer) and a Supabase-backed repository (repository layer) instead of a Dexie table and repository.",
       "default": false
     },
     "layer": {
       "type": "string",
       "enum": ["schema", "repository"],
-      "description": "Restrict output to one core.yaml layer's files — \"schema\" emits only {module}.schema.ts, the table registration, and the src/db/schema.ts append; \"repository\" emits only the fixture, repository, and repository spec (issue #279). Omit to emit both in one run, matching the pre-#279 behavior."
+      "description": "Emit only one core.yaml layer's files: \"schema\" the Zod schema, its spec, and the table file plus the src/db/schema.ts append (or, with --remote, the supabase/migrations stub); \"repository\" the fixture, repository, and repository spec. Omit to emit both in one run."
     }
   },
   "required": ["name"]

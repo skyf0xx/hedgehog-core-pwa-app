@@ -13,8 +13,7 @@ const VERSION_MARKER =
  * read straight from source text (the tree may hold uncommitted writes
  * from earlier in the same generator run, so this deliberately does not
  * shell out to a compiled build). The next module's version is
- * `max(existing) + 1`, or `1` if none exist yet — the exact mechanism
- * issue #172 §4/§9 requires so two modules landing in parallel never
+ * `max(existing) + 1`, or `1` if none exist yet, so two modules never
  * claim the same Dexie version number.
  */
 export function nextTableVersion(tree: Tree): number {
@@ -53,7 +52,7 @@ export function existingTableNames(tree: Tree): Set<string> {
  * Writes `src/db/tables/{module}.table.ts` — table name, Dexie index
  * string, and the version it was introduced at. A plain, client-generated
  * string `id` plus indexed `realmId`/`owner` (the `Syncable` fields) so
- * the table is sync-ready from its first version, per issue #172 §9 —
+ * the table is sync-ready from its first version —
  * `id` becomes Dexie Cloud's `@id` sharded-key marker only once sync
  * turns on (see the `schema` export's own doc comment below).
  */
@@ -86,7 +85,7 @@ export const tableName = '${camel}';
  * Cloud's own sharded-key marker, is dexie-cloud-addon syntax: the
  * addon intercepts \`.stores()\` and rewrites \`@id\` before core Dexie
  * ever sees it, so plain Dexie (the default here — the addon is
- * intentionally not installed, per issue #172 §9) treats \`@id\`
+ * not installed until sync turns on) treats \`@id\`
  * literally as a keyPath, which IndexedDB rejects. Turning sync on
  * later is a one-line change to this file, \`id\` -> \`@id\`, once
  * dexie-cloud-addon is installed and registered — no data migration,
@@ -118,7 +117,8 @@ export function registerTableInSchema(tree: Tree, module: string) {
   const importLine = `import * as ${camelModule(module)} from './tables/${module}.table';`;
   const storesLine = `  db.version(${camelModule(module)}.version).stores({ [${camelModule(module)}.tableName]: ${camelModule(module)}.schema });`;
 
-  if (content.includes(importLine)) return;
+  // A line match, not a substring one: the barrel's doc comment carries an example import.
+  if (content.split('\n').includes(importLine)) return;
 
   let next = content;
 
