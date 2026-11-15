@@ -15,15 +15,11 @@ produce the same output on every project — so the output is committed
 once, upstream, and copied here instead of re-derived by an agent on
 every run.
 
-Unlike `hedgehog-core-full-stack-app`'s bootstrap skill, this one is
-**not** add-on-blind: §15 of this core's design names two independent
-booleans — sync, remote entities — that a project can take either, both,
-or neither of, decided by `planner` during intake and recorded in
-`.hedgehog/addons.yaml` alongside module scoping, the same mechanism
-`full-stack-app` uses for its own Auth/Queue/Mobile add-ons. This skill
-reads that file and conditionally runs the matching branch below. There
-is no third branch and no partial state: each boolean is either on or
-off for the whole project, decided once, here.
+This core has two independent add-ons — sync and remote entities — that
+a project can take either, both, or neither of, decided by `planner`
+during intake and recorded in `.hedgehog/addons.yaml` alongside module
+scoping. This skill reads that file and runs the matching branch below.
+Each boolean is either on or off for the whole project.
 
 ## What lands unconditionally
 
@@ -38,31 +34,30 @@ regardless of which add-ons are on:
   authored core and never coexists with this one), `nx.json`,
   `tsconfig.base.json`, `tsconfig.json`, `eslint.config.mjs`,
   `lefthook.yml`, `commitlint.config.cjs`, `.env.example` (sync and
-  remote-entity variables present but commented out — §15 uncomments the
-  relevant block per branch below).
+  remote-entity variables present but commented out — the matching branch
+  below uncomments its block).
 - `src/app/` — Next.js App Router shell, static export configured, no
   server runtime.
 - `src/db/` — `database.ts` (the Dexie instance, sync wiring commented
   out until the sync branch below runs), `schema.ts` (the empty version
-  chain barrel — `export {}`, until the first module's `schema` layer
-  appends a line, the same reasoning `hedgehog-core-full-stack-app`'s
-  `packages/db/src/schema/index.ts` needs it for: a comment-only file
-  with zero import/export statements compiles as an ambient script, not
-  a module, under `isolatedModules`), `tables/` (empty until a module's
-  generator lands one), `export.ts` (versioned export / validated import
-  / clear, per §13 — wired to a settings route by this skill, step 5).
-- `src/components/` — hand-built ShadCN base (`components.json`, `cn()`
-  util, CSS variable theme, light/dark toggle), cross-feature UI only.
+  chain barrel: `applySchema` with a single empty `version(1)`, until the
+  first module's `schema` layer appends to it), `tables/` (empty until a
+  module's generator lands one), `export.ts` (versioned export /
+  validated import / clear, with its spec; no route uses it until a
+  module's screen does), `errors.ts`, `types.ts`, `persistence.ts`.
+- `src/components/` — hand-built ShadCN base (`cn()` util, `ui/` button,
+  card, input, textarea), cross-feature UI only; the CSS variable theme
+  lives in `src/styles/globals.css`.
 - `src/features/` — empty until the first module lands.
 - `src/integrations/` — empty until the first `integration` generator
   run.
 - `src/styles/` — Tailwind v4 entry.
-- `tools/generators/` — `feature`, `entity`, `integration` (§7). Not
+- `tools/generators/` — `feature`, `entity`, `integration`. Not
   built by this skill or by any build session; they ship pre-built in
   this package.
 - PWA manifest, icons, and `@serwist/next` service-worker config wired
   in `src/app/`, precached app shell, offline fallback route.
-- The full lint guardrail set from §8 — no `src/db/**` import outside
+- The full lint guardrail set — no `src/db/**` import outside
   `data/*.repository.ts`, no `indexedDB`/`localStorage` for app state
   beyond a named preferences allowlist, no deep feature import, no
   provider SDK import outside `integrations/*/[name].client.ts`, no
@@ -82,7 +77,7 @@ Check for `nx.json` at the repo root, or a prior `feat(config): workspace
 + shared config` commit (`git log --grep="^feat(config): workspace"`).
 Either means core already landed — stop, don't re-copy. If something
 about the landed core seems wrong, that's a Correction Protocol case
-(`hedgehog-loop`), not a re-copy: patch the specific file at its source.
+(`hedgehog-orchestrating`), not a re-copy: patch the specific file at its source.
 
 ### 2. Land this package's `workspace/`
 
@@ -108,7 +103,7 @@ cp .env.example .env.local
 
 No Docker, no local database server, no infra to bring up — Dexie is
 IndexedDB in the browser, and the app has no server tier. `.env.local`
-matters only once one of §5/§6's branches below writes a real value into
+matters only once one of step 5's or step 6's branches below writes a real value into
 it; for a project taking neither branch, the copied `.env.example`'s
 variables all stay commented out and the app runs with none of them
 set.
@@ -138,13 +133,13 @@ independent and neither depends on the other having run.
 
 The workspace already lands sync-ready regardless of this branch —
 plain, client-generated string `id` keys, `realmId`/`owner` on every
-syncable table, field-level mutations (§9) — so turning sync on here is
+syncable table, field-level mutations — so turning sync on here is
 wiring, not a data-shape change. The one shape change this branch makes
 is the primary key marker itself, `id` -> `@id`, on each existing table
 file:
 
 ```bash
-pnpm add dexie-cloud-addon
+pnpm add -w dexie-cloud-addon
 npx dexie-cloud create
 ```
 
@@ -168,10 +163,10 @@ db.cloud.configure({
 });
 ```
 
-Confirm the auth adapter in `src/db/` exposes `currentUser`, `signIn`,
-and `signOut` reading `db.cloud.currentUser` — never leave feature code
-reaching for `db.cloud` directly, the same isolation §8 requires for
-every provider SDK.
+Write an auth adapter in `src/db/` exposing `currentUser`, `signIn`, and
+`signOut` over `db.cloud.currentUser` — never leave feature code
+reaching for `db.cloud` directly, the same isolation the guardrails
+require for every provider SDK.
 
 Nothing above the repository layer changes. Don't touch any file under
 `src/features/` for this branch — if a module already exists at the
@@ -181,7 +176,7 @@ that's the property this branch exists to prove.
 ### 6. Remote entities branch (only if `remote_entities: true`)
 
 ```bash
-pnpm add @supabase/supabase-js
+pnpm add -w @supabase/supabase-js
 ```
 
 Provision a Supabase project (via the Supabase CLI or dashboard, per
@@ -189,14 +184,15 @@ whatever this project's Supabase setup path is) and write its URL and
 anon key into `.env.local` as `NEXT_PUBLIC_SUPABASE_URL` and
 `NEXT_PUBLIC_SUPABASE_ANON_KEY`, uncommenting the matching block in
 `.env.example`. Write `src/db/supabase.ts` — a single Supabase client
-instance, initialized once, imported only by the repository file of
-whichever entity a later `entity --remote` generator run creates. No
-other file in the workspace imports `@supabase/supabase-js` — same
-isolation rule as `src/db/database.ts` gets for Dexie.
+instance, initialized once, for the repository files of `--remote`
+modules. The repository `entity --remote` generates builds its own
+client from the same two variables; point it at `src/db/supabase.ts` in
+that module's `repository` layer. Only those repository files and
+`src/db/supabase.ts` import `@supabase/supabase-js`.
 
 Which entities are actually `--remote` is a per-entity decision made
 later, at build time, by whoever runs the `entity` generator for that
-module (§12) — not a bootstrap decision. This branch only wires the
+module — not a bootstrap decision. This branch only wires the
 client those entities' repositories and Edge Functions will need to
 exist; it creates no domain schema, no migration, and no
 `supabase/migrations/` directory of its own. That first migration file
@@ -206,7 +202,7 @@ build loop, not here.
 If a project's Supabase auth needs to share identity with Dexie Cloud
 (both branches on), record that choice in `.hedgehog/addons.yaml`
 alongside the two booleans rather than deciding it silently here — it's
-a real per-project decision (§12's "Auth" paragraph), and this skill
+a real per-project decision, and this skill
 only wires the client, not the identity model on top of it.
 
 ### 7. Verify
@@ -289,15 +285,9 @@ recommending a server by default. Tell the user, once core has landed:
   documented one-step path — not a redesign, and not something this
   skill sets up preemptively.
 
-Getting this backwards — leading with Railway the way
-`hedgehog-core-full-stack-app`'s bootstrap does — misstates what this
-core is: that core's app has a real server process Railway is built to
-host; this one's does not, and a project on this core needing
-infrastructure at all is the exception, not the baseline.
-
 ## Constraints
 
-- Run once per project, always as `hedgehog-bootstrap`'s first move —
+- Run once per project, always as the `bootstrap` agent's first move —
   never invoked on its own by a user.
 - Read `.hedgehog/addons.yaml` exactly once, at step 4, before deciding
   whether to run steps 5/6 — don't re-check it mid-branch or assume a
@@ -306,7 +296,7 @@ infrastructure at all is the exception, not the baseline.
   failure. Fix `workspace/` at the source instead (see **If
   verification fails**).
 - Don't add domain schema, repositories, hooks, or any
-  `src/features/*` content — that's the `hedgehog-loop` build loop,
+  `src/features/*` content — that's the build loop (`hedgehog-loop`),
   after every Bootstrap step (core, and whichever of sync/remote
   entities are on) is checked.
 - Don't provision Supabase or Dexie Cloud infrastructure for a project

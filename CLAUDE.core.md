@@ -20,12 +20,14 @@ exists; a project can have neither, either, or both.
 The discipline is packaged as skills. Use them; don't reconstruct their
 steps from memory:
 
-- **`hedgehog-loop`** — every unit of work once bootstrapped: `hedgehog
-  claim` reserves the packet for one ready layer (`hedgehog next` previews
-  it read-only, without reserving), build exactly one, gate it via
-  `hedgehog verify`, which commits it on a pass. Also holds the Correction
-  Protocol for fixing a wrong upstream step. Invoke it at the start of any
-  build session and for "what's next".
+- **`hedgehog-orchestrating`** — the build loop every core shares:
+  `hedgehog claim` reserves ready layers' packets, each is built, and
+  `hedgehog verify` gates and commits it. Also holds the Correction
+  Protocol for fixing a wrong upstream step and the Stop Condition.
+- **`hedgehog-loop`** — this core's specifics for that loop: the layer
+  table, who builds each layer, the conventions inside a layer, and the
+  per-module review checklist. Invoke both at the start of any build
+  session and for "what's next".
 <!-- hedgehog:bootstrap-only start -->
 - **`hedgehog-bootstrap-pwa-app-core`** — run **once**, at project
   start, to scaffold the core stack, the enforcement config, and
@@ -40,10 +42,7 @@ steps from memory:
 
 `pwa-eng` builds every module's full sequence (schema → repository →
 hook → screen), one `hedgehog claim`ed packet at a time, gated by
-`hedgehog verify` — one agent for the whole vertical slice, since every
-layer here is TypeScript running client-side against the same Dexie
-instance, with no framework-tier split to justify separate agents the
-way a server-backed core splits backend from frontend engineers.
+`hedgehog verify` — one agent for the whole vertical slice.
 `reviewer` runs the per-module checks the mechanical gate can't make,
 once a module's `join` task lands. See `hedgehog-loop` for exactly which
 agent owns which layer and the claim/verify sequencing — that skill is
@@ -54,7 +53,7 @@ the source, not restated here.
 ### Stack (locked, every project — no add-on varies the stack itself, only whether sync/remote-entity infra is wired)
 
 Next.js (App Router, **static export** — no server runtime) · Nx
-(boundary enforcement, generators) · pnpm · **Dexie 4** (the one
+(generators) · pnpm · **Dexie 4** (the one
 supported IndexedDB abstraction — raw `indexedDB` and `localStorage` for
 app state are lint-forbidden) · **Zod** (entities, imports, external
 responses — types inferred, never hand-maintained alongside) ·
@@ -63,14 +62,14 @@ calls to a module's Dexie- or Supabase-backed repository, and external
 API responses too, never a substitute for the local DB itself) ·
 Tailwind v4 + hand-built ShadCN base · **`@serwist/next`**
 (manifest, service worker, precached app shell, offline fallback) ·
-Dexie's sharded auto-generated string keys (client-generated,
-collision-free across devices, the form Dexie Cloud requires — a
-hand-rolled ID scheme is not substitutable once data exists) · Vitest +
+client-generated string `id` keys (`crypto.randomUUID()`, collision-free
+across devices; the table's `id` becomes Dexie Cloud's `@id` marker when
+sync turns on — a hand-rolled or auto-increment ID scheme is not
+substitutable once data exists) · Vitest +
 `fake-indexeddb` + Testing Library (repository tests run against a real
 IndexedDB implementation in-process) · Playwright (offline-mode and
-install-manifest checks) · ESLint + Prettier +
-`@nx/enforce-module-boundaries` · Conventional Commits + commitlint +
-lefthook.
+install-manifest checks) · ESLint (path-pattern guardrails) + Prettier
+· Conventional Commits + commitlint + lefthook.
 
 **Off by default, wired only when `.hedgehog/addons.yaml` turns them
 on** — independent booleans, a project can have neither, either, or
@@ -124,7 +123,7 @@ src/
     schema.ts               version chain + table registration — barrel, append-only
     tables/                 per-module registration file, one per entity
     supabase.ts             Supabase client — only if remote entities are on
-    export.ts                versioned export / validated import / clear (§13)
+    export.ts                versioned export / validated import / clear
   integrations/<name>/     <name>.client.ts, .schema.ts, .adapter.ts
   components/              cross-feature UI only
   styles/
@@ -135,7 +134,9 @@ eslint.config.mjs
 lefthook.yml
 commitlint.config.cjs
 .hedgehog/
-  hedgehog.db               the build graph — intents, tasks, dependencies, verifications, committed to git
+  hedgehog.db               the build graph — gitignored, derived; `hedgehog db rebuild` restores it from the committed records
+  intents/                   one committed JSON file per intent
+  friction/ notes/ noop/ reopened/   committed build-graph records
   addons.yaml                sync / remote_entities, each on or off, from planner
   BMAD/                       archival planning intake output (brief, PRD, UX spec, research) — write-once, from planner
 ```
@@ -145,16 +146,16 @@ owns its behavior; ESLint rejects those directory names. Check
 `.hedgehog/addons.yaml` before assuming `src/db/supabase.ts` or any sync
 wiring in `database.ts` is actually present in this codebase.
 
-### Generators (§7 — invoke, don't hand-author)
+### Generators (invoke, don't hand-author)
 
 Three Nx generators — `feature`, `entity`, `integration` — scaffold
 every layer; there is no `hedgehog generate` command, since `hedgehog`
 is the build-graph CLI and gains no generator verbs of its own. See
 `hedgehog-loop`'s `references/scaffolding.md` for the commands, flags,
-and the `entity --layer` contract against a claimed task's ALLOWED
-SCOPE — that file is the source, not restated here.
+and the `--layer` contract against a claimed task's ALLOWED SCOPE —
+that file is the source, not restated here.
 
-### Guardrails (§8 — lint-enforced, run in `join`'s verify and in CI)
+### Guardrails (lint-enforced, run in `join`'s verify and in CI)
 
 - No import of `src/db/**` from `components/`, `hooks/`, `app/`, or any
   `.tsx` file. Only `data/*.repository.ts` reaches the database — Dexie
@@ -171,9 +172,7 @@ SCOPE — that file is the source, not restated here.
 - `@typescript-eslint/no-floating-promises`, `no-explicit-any`, strict
   mode on.
 
-Multi-table mutations run inside `db.transaction("rw", …)`; the `entity`
-generator emits the transaction wrapper so the common case is correct by
-construction.
+Multi-table mutations run inside `db.transaction("rw", …)`.
 
 ### Core rules
 
@@ -186,8 +185,8 @@ construction.
 - **No phase split to gate.** Schema through screen is one continuous
   pass per module, all built by `pwa-eng`; `join` is the single
   workspace-wide backstop after each module's `screen` lands.
-- **One layer = one commit**, in the exact Conventional Commit format
-  from `hedgehog-loop`. A commit that fails typecheck/lint/test does not
+- **One layer = one commit**, with the Conventional Commit message the
+  layer's packet carries (`hedgehog core show` lists them). A commit that fails typecheck/lint/test does not
   happen (lefthook gate).
 - **Fix wrong layers at the source** via the Correction Protocol — never
   a downstream workaround.
@@ -197,7 +196,7 @@ construction.
 - **`src/db/schema.ts` is a hand-editable barrel, appended to by each
   module's `schema` layer** — never regenerated wholesale, never
   restructured mid-build.
-- **Export is a first-class feature, not an add-on** (§13). `src/db/
+- **Export is a first-class feature, not an add-on.** `src/db/
   export.ts` ships in the workspace; import validates the whole payload
   against the current schema version, inside one transaction, before
   writing anything. Clear requires explicit confirmation.

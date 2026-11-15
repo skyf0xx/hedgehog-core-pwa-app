@@ -15,6 +15,7 @@ flowchart LR
     A[Schema] --> B[Repository]
     B --> C[Hook]
     C --> D[Screen]
+    D --> E[Join]
 ```
 
 ## What you get
@@ -50,5 +51,7 @@ npx @skyf0xx/hedgehog init
 ```
 npx @skyf0xx/hedgehog init --pwa-app
 ```
+
+</details>
 
 Technical details: [ARCHITECTURE.md](ARCHITECTURE.md)
