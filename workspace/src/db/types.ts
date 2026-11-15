@@ -1,5 +1,5 @@
 /**
- * Cross-cutting DB conventions (issue #172 §14) — types and documented
+ * Cross-cutting DB conventions — types and documented
  * conventions, not enforcement mechanisms. Enforcement, where it exists,
  * lives in eslint.config.mjs and Zod schemas at the data boundary.
  */

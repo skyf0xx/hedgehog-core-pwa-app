@@ -1,12 +1,8 @@
 import type { Dexie } from 'dexie';
 
 /**
- * The schema barrel. Not generated/derived — a normal source file each
- * module's `schema` layer appends one import + one `.stores()` line to,
- * the same append-only discipline `hedgehog-core-full-stack-app`'s
- * `packages/db/src/schema/index.ts` barrel uses (see
- * ../../.design-notes.md §1 in the core package's repo root for the
- * full rationale — not shipped inside this workspace).
+ * The schema barrel. A normal, append-only source file: each module's
+ * `schema` layer appends one import + one `.stores()` line to it.
  *
  * One `src/db/tables/{module}.table.ts` file per module exports that
  * module's table name, Dexie store schema string, and the integer

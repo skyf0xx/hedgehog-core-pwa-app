@@ -9,9 +9,9 @@ interface IntegrationGeneratorOptions {
 }
 
 /**
- * Client/schema/adapter triple for one external integration (issue
- * #172 §7). `--kind=wallet` emits the AuthProvider/WalletProvider stub
- * pair from §11 instead — a fixed contract the invoking agent fills in
+ * Client/schema/adapter triple for one external integration.
+ * `--kind=wallet` emits the AuthProvider/WalletProvider stub pair
+ * instead — a fixed contract the invoking agent fills in
  * with a real provider (Privy/Dynamic/etc); this generator does not
  * pick one.
  */
@@ -48,8 +48,7 @@ export default async function integrationGenerator(tree: Tree, options: Integrat
  * identically) without importing across it — eslint.config.mjs's
  * no-restricted-imports guardrail confines `@/db/**` to a feature's own
  * `data/*.repository.ts`, and an integration adapter is deliberately
- * outside that allowance (issue #172 §8: only a repository reaches the
- * database; an integration reaches an external API instead, through its
+ * outside that allowance (only a repository reaches the database; an integration reaches an external API instead, through its
  * own error type at the same shape).
  */
 function integrationErrorFile(): string {
@@ -79,7 +78,7 @@ function clientFile(names: ModuleNames): string {
  * The only file allowed to import a provider SDK for the "${names.module}"
  * integration — enforced by eslint.config.mjs's no-restricted-imports
  * guardrail (no feature, hook, or component may import a provider SDK
- * directly; issue #172 §8).
+ * directly).
  *
  * Replace the body of \`fetch${pascal}\` with the real provider/HTTP call.
  * It returns the raw, unvalidated response — validation happens in
@@ -123,7 +122,7 @@ import { ${pascal}ResponseSchema, type ${pascal}Response } from './${module}.sch
 /**
  * Maps the client's raw response through the Zod schema, returning
  * typed data or throwing a discriminated AppError — never the client's
- * raw error or a bare Error (issue #172 §14).
+ * raw error or a bare Error.
  */
 export async function get${pascal}(): Promise<${pascal}Response> {
   let raw: unknown;
@@ -188,7 +187,7 @@ export type { ${pascal}Response } from './${module}.schema';
 }
 
 /**
- * The AuthProvider/WalletProvider contract from issue #172 §11, verbatim.
+ * The AuthProvider/WalletProvider contract.
  * A stub the invoking agent fills in with a real provider (Privy,
  * Dynamic, etc) — this generator does not pick one.
  */
@@ -197,7 +196,7 @@ function walletClientFile(names: ModuleNames): string {
 
   return `/**
  * The only file allowed to import a wallet/auth provider SDK for the
- * "${names.module}" integration (issue #172 §8/§11). Wire the real
+ * "${names.module}" integration. Wire the real
  * provider's client here (Privy, Dynamic, or similar embedded-wallet
  * provider) — this generator emits the contract shape only.
  */
@@ -218,10 +217,10 @@ function walletAdapterFile(names: ModuleNames): string {
   return `import { providerError } from './integration-error';
 
 /**
- * Fixed shape every wallet integration implements (issue #172 §11).
+ * Fixed shape every wallet integration implements.
  * A component reading auth state never knows or cares whether the
  * identity behind it is a Dexie Cloud user or a wallet session — this
- * is the same isolation §9's db.cloud.currentUser adapter follows.
+ * is the same isolation the db.cloud.currentUser adapter follows.
  */
 export interface User {
   id: string;
@@ -252,8 +251,8 @@ export interface WalletProvider {
 
 /**
  * Stub implementation of both interfaces, provider-native by default
- * (issue #172 §11 — chained identity through an existing JWT issuer is
- * only wired when intake names one to preserve). Every method throws
+ * (chained identity through an existing JWT issuer is only wired when
+ * intake names one to preserve). Every method throws
  * providerError until the real provider SDK is wired in ${names.module}.client.ts.
  */
 export const ${pascal}Provider: AuthProvider & WalletProvider = {
