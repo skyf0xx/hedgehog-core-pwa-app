@@ -63,7 +63,7 @@
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "7.1.1",
     "fake-indexeddb": "^6.2.8",
-    "jsdom": "^30.1.3",
+    "jsdom": "^31.0.1",
     "lefthook": "^2.2.2",
     "nx": "24.0.6",
     "prettier": "~3.10.1",
